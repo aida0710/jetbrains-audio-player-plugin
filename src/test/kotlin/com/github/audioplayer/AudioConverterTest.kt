@@ -38,6 +38,14 @@ class AudioConverterTest {
     }
 
     @Test
+    fun `findFfmpeg returns path when ffmpeg is installed`() {
+        val path = AudioConverter.findFfmpeg()
+        // ffmpeg should be installed on the dev machine
+        assertNotNull("ffmpeg not found on PATH", path)
+        assertTrue(File(path!!).exists())
+    }
+
+    @Test
     fun `convertToWav returns null for non-existent file`() {
         val fakeFile = File("/tmp/nonexistent_audio_file_12345.mp3")
         val result = AudioConverter.convertToWav(fakeFile)

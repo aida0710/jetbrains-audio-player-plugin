@@ -25,8 +25,6 @@ dependencies {
         zipSigner()
     }
 
-    implementation("ws.schild:jave-all-deps:3.5.0")
-
     testImplementation("junit:junit:4.13.2")
 }
 
