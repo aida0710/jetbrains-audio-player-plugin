@@ -5,7 +5,6 @@ import java.io.File
 import javax.sound.sampled.*
 
 class AudioPlayerService {
-
     private val log = Logger.getInstance(AudioPlayerService::class.java)
 
     enum class PlaybackState { PLAYING, PAUSED, STOPPED }
@@ -42,18 +41,19 @@ class AudioPlayerService {
         try {
             val audioStream = AudioSystem.getAudioInputStream(converted)
             log.info("AudioInputStream format: ${audioStream.format}")
-            clip = AudioSystem.getClip().apply {
-                open(audioStream)
-                log.info("Clip opened. Duration: ${microsecondLength / 1_000_000}s")
-                addLineListener { event ->
-                    if (event.type == LineEvent.Type.STOP && state == PlaybackState.PLAYING) {
-                        if (!isLooping && microsecondPosition >= microsecondLength) {
-                            state = PlaybackState.STOPPED
-                            onStateChanged?.invoke(state)
+            clip =
+                AudioSystem.getClip().apply {
+                    open(audioStream)
+                    log.info("Clip opened. Duration: ${microsecondLength / 1_000_000}s")
+                    addLineListener { event ->
+                        if (event.type == LineEvent.Type.STOP && state == PlaybackState.PLAYING) {
+                            if (!isLooping && microsecondPosition >= microsecondLength) {
+                                state = PlaybackState.STOPPED
+                                onStateChanged?.invoke(state)
+                            }
                         }
                     }
                 }
-            }
         } catch (e: Exception) {
             log.error("Failed to open audio clip", e)
             onError?.invoke("Failed to open audio: ${e.message}")
@@ -104,11 +104,12 @@ class AudioPlayerService {
         val c = clip ?: return
         try {
             val gainControl = c.getControl(FloatControl.Type.MASTER_GAIN) as FloatControl
-            val dB = if (percent <= 0f) {
-                gainControl.minimum
-            } else {
-                20f * Math.log10(percent / 100.0).toFloat()
-            }
+            val dB =
+                if (percent <= 0f) {
+                    gainControl.minimum
+                } else {
+                    20f * Math.log10(percent / 100.0).toFloat()
+                }
             gainControl.value = dB.coerceIn(gainControl.minimum, gainControl.maximum)
         } catch (_: Exception) {
             // Volume control not available

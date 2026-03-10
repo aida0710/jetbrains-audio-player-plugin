@@ -10,8 +10,9 @@ import javax.swing.*
 import javax.swing.event.ChangeEvent
 import javax.swing.table.DefaultTableModel
 
-class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
-
+class AudioPlayerPanel(
+    private val file: VirtualFile,
+) : JPanel(BorderLayout()) {
     private val playerService = AudioPlayerService()
 
     private val playPauseButton = JButton("\u25B6")
@@ -30,9 +31,13 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
     private val imageLabel = JLabel("", SwingConstants.CENTER)
 
     // Info panel table
-    private val infoTableModel = object : DefaultTableModel(arrayOf("Property", "Value"), 0) {
-        override fun isCellEditable(row: Int, column: Int) = false
-    }
+    private val infoTableModel =
+        object : DefaultTableModel(arrayOf("Property", "Value"), 0) {
+            override fun isCellEditable(
+                row: Int,
+                column: Int,
+            ) = false
+        }
     private val infoTable = JTable(infoTableModel)
 
     private var isSeeking = false
@@ -54,31 +59,35 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         val controlsPanel = createControlsPanel()
 
         // === Top: horizontal split (info | controls) ===
-        val topSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, infoPanel, controlsPanel).apply {
-            resizeWeight = 0.5
-            border = null
-            isOpaque = false
-        }
+        val topSplit =
+            JSplitPane(JSplitPane.HORIZONTAL_SPLIT, infoPanel, controlsPanel).apply {
+                resizeWeight = 0.5
+                border = null
+                isOpaque = false
+            }
 
         // === Bottom: Analyze panel ===
         val analyzePanel = createAnalyzePanel()
 
         // === Main: vertical split (top | bottom) ===
-        val mainSplit = JSplitPane(JSplitPane.VERTICAL_SPLIT, topSplit, analyzePanel).apply {
-            resizeWeight = 0.5
-            border = null
-            isOpaque = false
-        }
+        val mainSplit =
+            JSplitPane(JSplitPane.VERTICAL_SPLIT, topSplit, analyzePanel).apply {
+                resizeWeight = 0.5
+                border = null
+                isOpaque = false
+            }
 
         add(mainSplit, BorderLayout.CENTER)
 
         // Set divider locations to 50% after layout is realized
-        addComponentListener(object : java.awt.event.ComponentAdapter() {
-            override fun componentResized(e: java.awt.event.ComponentEvent?) {
-                mainSplit.setDividerLocation(0.5)
-                topSplit.setDividerLocation(0.5)
-            }
-        })
+        addComponentListener(
+            object : java.awt.event.ComponentAdapter() {
+                override fun componentResized(e: java.awt.event.ComponentEvent?) {
+                    mainSplit.setDividerLocation(0.5)
+                    topSplit.setDividerLocation(0.5)
+                }
+            },
+        )
     }
 
     private fun createInfoPanel(): JPanel {
@@ -106,23 +115,25 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         fileNameLabel.font = fileNameLabel.font.deriveFont(Font.BOLD, 16f)
         fileNameLabel.horizontalAlignment = SwingConstants.CENTER
 
-        val topPanel = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            add(fileNameLabel, BorderLayout.CENTER)
-            add(timeLabel, BorderLayout.EAST)
-            border = JBUI.Borders.emptyBottom(12)
-        }
+        val topPanel =
+            JPanel(BorderLayout()).apply {
+                isOpaque = false
+                add(fileNameLabel, BorderLayout.CENTER)
+                add(timeLabel, BorderLayout.EAST)
+                border = JBUI.Borders.emptyBottom(12)
+            }
 
         seekSlider.apply {
             isOpaque = false
             toolTipText = "Seek"
         }
 
-        val seekPanel = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            add(seekSlider, BorderLayout.CENTER)
-            border = JBUI.Borders.emptyBottom(8)
-        }
+        val seekPanel =
+            JPanel(BorderLayout()).apply {
+                isOpaque = false
+                add(seekSlider, BorderLayout.CENTER)
+                border = JBUI.Borders.emptyBottom(8)
+            }
 
         playPauseButton.apply {
             font = font.deriveFont(18f)
@@ -139,12 +150,13 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
             preferredSize = Dimension(60, 40)
         }
 
-        val buttonsPanel = JPanel(FlowLayout(FlowLayout.CENTER, 8, 0)).apply {
-            isOpaque = false
-            add(playPauseButton)
-            add(stopButton)
-            add(loopButton)
-        }
+        val buttonsPanel =
+            JPanel(FlowLayout(FlowLayout.CENTER, 8, 0)).apply {
+                isOpaque = false
+                add(playPauseButton)
+                add(stopButton)
+                add(loopButton)
+            }
 
         val volumeLabel = JLabel("Vol")
         volumeSlider.apply {
@@ -154,29 +166,31 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         }
         volumeValueLabel.preferredSize = Dimension(36, 20)
 
-        val volumePanel = JPanel(FlowLayout(FlowLayout.CENTER, 4, 0)).apply {
-            isOpaque = false
-            add(volumeLabel)
-            add(volumeSlider)
-            add(volumeValueLabel)
-            border = JBUI.Borders.emptyTop(4)
-        }
+        val volumePanel =
+            JPanel(FlowLayout(FlowLayout.CENTER, 4, 0)).apply {
+                isOpaque = false
+                add(volumeLabel)
+                add(volumeSlider)
+                add(volumeValueLabel)
+                border = JBUI.Borders.emptyTop(4)
+            }
 
         statusLabel.apply {
             horizontalAlignment = SwingConstants.CENTER
             foreground = JBColor.RED
         }
 
-        val centerPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            isOpaque = false
-            add(topPanel)
-            add(seekPanel)
-            add(buttonsPanel)
-            add(volumePanel)
-            add(Box.createVerticalStrut(4))
-            add(statusLabel)
-        }
+        val centerPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                isOpaque = false
+                add(topPanel)
+                add(seekPanel)
+                add(buttonsPanel)
+                add(volumePanel)
+                add(Box.createVerticalStrut(4))
+                add(statusLabel)
+            }
 
         return JPanel(BorderLayout()).apply {
             isOpaque = false
@@ -189,11 +203,12 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         analyzeWaveformButton.toolTipText = "Generate waveform image"
         analyzeSpectrumButton.toolTipText = "Generate spectrum image"
 
-        val buttonPanel = JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
-            isOpaque = false
-            add(analyzeWaveformButton)
-            add(analyzeSpectrumButton)
-        }
+        val buttonPanel =
+            JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
+                isOpaque = false
+                add(analyzeWaveformButton)
+                add(analyzeSpectrumButton)
+            }
 
         imageLabel.apply {
             horizontalAlignment = SwingConstants.CENTER
@@ -310,14 +325,17 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         // Space key toggles play/pause
         val spaceKey = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0)
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(spaceKey, "togglePlayPause")
-        actionMap.put("togglePlayPause", object : AbstractAction() {
-            override fun actionPerformed(e: java.awt.event.ActionEvent?) {
-                when (playerService.state) {
-                    AudioPlayerService.PlaybackState.PLAYING -> playerService.pause()
-                    else -> playerService.play()
+        actionMap.put(
+            "togglePlayPause",
+            object : AbstractAction() {
+                override fun actionPerformed(e: java.awt.event.ActionEvent?) {
+                    when (playerService.state) {
+                        AudioPlayerService.PlaybackState.PLAYING -> playerService.pause()
+                        else -> playerService.play()
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     private fun loadFile() {
@@ -360,7 +378,9 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         if (metadata != null) {
             infoTableModel.addRow(arrayOf("Encoding", metadata.encoding))
             infoTableModel.addRow(arrayOf("Format", metadata.format))
-            infoTableModel.addRow(arrayOf("Channels", AudioProbe.formatChannels(metadata.channels, metadata.channelLayout)))
+            infoTableModel.addRow(
+                arrayOf("Channels", AudioProbe.formatChannels(metadata.channels, metadata.channelLayout)),
+            )
             infoTableModel.addRow(arrayOf("Sample Rate", AudioProbe.formatSampleRate(metadata.sampleRate)))
             infoTableModel.addRow(arrayOf("File Size", AudioProbe.formatFileSize(metadata.fileSize)))
             val durationStr = AudioPlayerService.formatTime(metadata.durationSeconds.toLong())
@@ -372,16 +392,17 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
 
     private fun startPositionTimer() {
         stopPositionTimer()
-        positionTimer = Timer(100) {
-            if (!isSeeking) {
-                val current = playerService.currentMicroseconds
-                val total = playerService.totalMicroseconds
-                if (total > 0) {
-                    seekSlider.value = ((current * 1000) / total).toInt()
+        positionTimer =
+            Timer(100) {
+                if (!isSeeking) {
+                    val current = playerService.currentMicroseconds
+                    val total = playerService.totalMicroseconds
+                    if (total > 0) {
+                        seekSlider.value = ((current * 1000) / total).toInt()
+                    }
+                    updateTimeLabel(current, total)
                 }
-                updateTimeLabel(current, total)
-            }
-        }.apply { start() }
+            }.apply { start() }
     }
 
     private fun stopPositionTimer() {
@@ -389,7 +410,10 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         positionTimer = null
     }
 
-    private fun updateTimeLabel(currentMicros: Long, totalMicros: Long) {
+    private fun updateTimeLabel(
+        currentMicros: Long,
+        totalMicros: Long,
+    ) {
         val currentSec = currentMicros / 1_000_000
         val totalSec = totalMicros / 1_000_000
         timeLabel.text = "${AudioPlayerService.formatTime(currentSec)} / ${AudioPlayerService.formatTime(totalSec)}"

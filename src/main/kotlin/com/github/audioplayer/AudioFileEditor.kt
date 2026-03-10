@@ -7,8 +7,10 @@ import com.intellij.openapi.vfs.VirtualFile
 import java.beans.PropertyChangeListener
 import javax.swing.JComponent
 
-class AudioFileEditor(private val file: VirtualFile) : UserDataHolderBase(), FileEditor {
-
+class AudioFileEditor(
+    private val file: VirtualFile,
+) : UserDataHolderBase(),
+    FileEditor {
     private val panel = AudioPlayerPanel(file)
 
     override fun getComponent(): JComponent = panel

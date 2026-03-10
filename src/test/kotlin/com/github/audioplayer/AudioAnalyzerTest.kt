@@ -4,16 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AudioAnalyzerTest {
-
     @Test
     fun `buildWaveformCommand constructs correct ffmpeg command`() {
-        val cmd = AudioAnalyzer.buildWaveformCommand(
-            ffmpegPath = "/usr/local/bin/ffmpeg",
-            inputPath = "/tmp/test.mp3",
-            outputPath = "/tmp/waveform.png",
-            width = 800,
-            height = 200
-        )
+        val cmd =
+            AudioAnalyzer.buildWaveformCommand(
+                ffmpegPath = "/usr/local/bin/ffmpeg",
+                inputPath = "/tmp/test.mp3",
+                outputPath = "/tmp/waveform.png",
+                width = 800,
+                height = 200,
+            )
 
         assertEquals("/usr/local/bin/ffmpeg", cmd[0])
         assertTrue(cmd.contains("-i"))
@@ -26,13 +26,14 @@ class AudioAnalyzerTest {
 
     @Test
     fun `buildSpectrumCommand constructs correct ffmpeg command`() {
-        val cmd = AudioAnalyzer.buildSpectrumCommand(
-            ffmpegPath = "/usr/local/bin/ffmpeg",
-            inputPath = "/tmp/test.mp3",
-            outputPath = "/tmp/spectrum.png",
-            width = 800,
-            height = 200
-        )
+        val cmd =
+            AudioAnalyzer.buildSpectrumCommand(
+                ffmpegPath = "/usr/local/bin/ffmpeg",
+                inputPath = "/tmp/test.mp3",
+                outputPath = "/tmp/spectrum.png",
+                width = 800,
+                height = 200,
+            )
 
         assertEquals("/usr/local/bin/ffmpeg", cmd[0])
         assertTrue(cmd.contains("-i"))

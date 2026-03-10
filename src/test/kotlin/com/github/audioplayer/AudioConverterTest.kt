@@ -5,7 +5,6 @@ import org.junit.Test
 import java.io.File
 
 class AudioConverterTest {
-
     @Test
     fun `isSupportedExtension returns true for mp3`() {
         assertTrue(AudioConverter.isSupportedExtension("mp3"))
@@ -81,15 +80,17 @@ class AudioConverterTest {
         file.writeBytes(header)
     }
 
-    private fun intToLE(value: Int) = byteArrayOf(
-        (value and 0xFF).toByte(),
-        ((value shr 8) and 0xFF).toByte(),
-        ((value shr 16) and 0xFF).toByte(),
-        ((value shr 24) and 0xFF).toByte()
-    )
+    private fun intToLE(value: Int) =
+        byteArrayOf(
+            (value and 0xFF).toByte(),
+            ((value shr 8) and 0xFF).toByte(),
+            ((value shr 16) and 0xFF).toByte(),
+            ((value shr 24) and 0xFF).toByte(),
+        )
 
-    private fun shortToLE(value: Int) = byteArrayOf(
-        (value and 0xFF).toByte(),
-        ((value shr 8) and 0xFF).toByte()
-    )
+    private fun shortToLE(value: Int) =
+        byteArrayOf(
+            (value and 0xFF).toByte(),
+            ((value shr 8) and 0xFF).toByte(),
+        )
 }

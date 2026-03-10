@@ -4,7 +4,6 @@ import com.intellij.openapi.fileTypes.FileType
 import javax.swing.Icon
 
 class AudioFileType private constructor() : FileType {
-
     override fun getName(): String = "Audio"
 
     override fun getDescription(): String = "Audio file"
@@ -20,9 +19,19 @@ class AudioFileType private constructor() : FileType {
     companion object {
         val INSTANCE = AudioFileType()
 
-        val EXTENSIONS = listOf(
-            "mp3", "wav", "ogg", "flac", "aac", "m4a", "wma",
-            "opus", "ape", "aiff", "aif"
-        )
+        val EXTENSIONS =
+            listOf(
+                "mp3",
+                "wav",
+                "ogg",
+                "flac",
+                "aac",
+                "m4a",
+                "wma",
+                "opus",
+                "ape",
+                "aiff",
+                "aif",
+            )
     }
 }

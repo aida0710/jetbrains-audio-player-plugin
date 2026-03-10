@@ -4,26 +4,26 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AudioProbeTest {
-
     // --- parseJson tests ---
 
     @Test
     fun `parseJson extracts metadata from ffprobe JSON`() {
-        val json = """
-        {
-            "streams": [{
-                "codec_name": "mp3",
-                "sample_fmt": "fltp",
-                "channels": 2,
-                "channel_layout": "stereo",
-                "sample_rate": "44100",
-                "duration": "180.5"
-            }],
-            "format": {
-                "duration": "180.5"
+        val json =
+            """
+            {
+                "streams": [{
+                    "codec_name": "mp3",
+                    "sample_fmt": "fltp",
+                    "channels": 2,
+                    "channel_layout": "stereo",
+                    "sample_rate": "44100",
+                    "duration": "180.5"
+                }],
+                "format": {
+                    "duration": "180.5"
+                }
             }
-        }
-        """.trimIndent()
+            """.trimIndent()
 
         val metadata = AudioProbe.parseJson(json, 5_000_000)
 
@@ -39,17 +39,18 @@ class AudioProbeTest {
 
     @Test
     fun `parseJson handles missing channel_layout for mono`() {
-        val json = """
-        {
-            "streams": [{
-                "codec_name": "pcm_s16le",
-                "sample_fmt": "s16",
-                "channels": 1,
-                "sample_rate": "48000",
-                "duration": "60.0"
-            }]
-        }
-        """.trimIndent()
+        val json =
+            """
+            {
+                "streams": [{
+                    "codec_name": "pcm_s16le",
+                    "sample_fmt": "s16",
+                    "channels": 1,
+                    "sample_rate": "48000",
+                    "duration": "60.0"
+                }]
+            }
+            """.trimIndent()
 
         val metadata = AudioProbe.parseJson(json, 1_000_000)
 
@@ -60,17 +61,18 @@ class AudioProbeTest {
 
     @Test
     fun `parseJson handles missing channel_layout for stereo`() {
-        val json = """
-        {
-            "streams": [{
-                "codec_name": "aac",
-                "sample_fmt": "fltp",
-                "channels": 2,
-                "sample_rate": "44100",
-                "duration": "30.0"
-            }]
-        }
-        """.trimIndent()
+        val json =
+            """
+            {
+                "streams": [{
+                    "codec_name": "aac",
+                    "sample_fmt": "fltp",
+                    "channels": 2,
+                    "sample_rate": "44100",
+                    "duration": "30.0"
+                }]
+            }
+            """.trimIndent()
 
         val metadata = AudioProbe.parseJson(json, 500_000)
 
@@ -80,17 +82,18 @@ class AudioProbeTest {
 
     @Test
     fun `parseJson handles multi-channel layout`() {
-        val json = """
-        {
-            "streams": [{
-                "codec_name": "aac",
-                "sample_fmt": "fltp",
-                "channels": 6,
-                "sample_rate": "48000",
-                "duration": "120.0"
-            }]
-        }
-        """.trimIndent()
+        val json =
+            """
+            {
+                "streams": [{
+                    "codec_name": "aac",
+                    "sample_fmt": "fltp",
+                    "channels": 6,
+                    "sample_rate": "48000",
+                    "duration": "120.0"
+                }]
+            }
+            """.trimIndent()
 
         val metadata = AudioProbe.parseJson(json, 10_000_000)
 

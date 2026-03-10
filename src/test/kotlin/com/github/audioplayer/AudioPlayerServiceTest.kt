@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AudioPlayerServiceTest {
-
     @Test
     fun `formatTime formats zero seconds`() {
         assertEquals("00:00", AudioPlayerService.formatTime(0))

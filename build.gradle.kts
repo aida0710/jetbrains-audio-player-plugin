@@ -2,6 +2,7 @@ plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.1.20"
     id("org.jetbrains.intellij.platform") version "2.12.0"
+    id("org.jlleitschuh.gradle.ktlint") version "14.0.1"
 }
 
 val platformVersion: String by project
@@ -42,6 +43,15 @@ intellijPlatform {
     }
     publishing {
         token.set(System.getenv("PUBLISH_TOKEN") ?: "")
+    }
+}
+
+ktlint {
+    version.set("1.5.0")
+    outputToConsole.set(true)
+    outputColorName.set("RED")
+    filter {
+        exclude("**/build/**")
     }
 }
 
