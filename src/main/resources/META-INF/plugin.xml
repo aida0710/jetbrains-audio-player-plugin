@@ -7,6 +7,11 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <fileType
+            name="Audio"
+            implementationClass="com.github.audioplayer.AudioFileType"
+            fieldName="INSTANCE"
+            extensions="mp3;wav;ogg;flac;aac;m4a;wma;opus;ape;aiff;aif"/>
         <fileEditorProvider
             implementation="com.github.audioplayer.AudioFileEditorProvider"
             id="audioFileEditor"
