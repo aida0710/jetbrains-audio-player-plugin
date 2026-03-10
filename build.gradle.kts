@@ -35,6 +35,14 @@ intellijPlatform {
         version = pluginVersion
         description = "Play audio files directly in the editor with playback controls."
     }
+    signing {
+        certificateChainFile.set(file(System.getenv("CERTIFICATE_CHAIN") ?: "chain.crt"))
+        privateKeyFile.set(file(System.getenv("PRIVATE_KEY") ?: "private.pem"))
+        password.set(System.getenv("PRIVATE_KEY_PASSWORD") ?: "")
+    }
+    publishing {
+        token.set(System.getenv("PUBLISH_TOKEN") ?: "")
+    }
 }
 
 java {

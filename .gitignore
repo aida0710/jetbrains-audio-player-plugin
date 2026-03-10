@@ -34,3 +34,8 @@ bin/
 build/
 .idea/
 .intellijPlatform/
+
+### Signing ###
+private.pem
+chain.crt
+.env

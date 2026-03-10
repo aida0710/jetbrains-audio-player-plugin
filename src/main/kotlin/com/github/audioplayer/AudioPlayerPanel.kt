@@ -4,9 +4,11 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.*
+import java.awt.event.KeyEvent
 import java.io.File
 import javax.swing.*
 import javax.swing.event.ChangeEvent
+import javax.swing.table.DefaultTableModel
 
 class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
 
@@ -18,14 +20,26 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
     private val seekSlider = JSlider(0, 1000, 0)
     private val volumeSlider = JSlider(0, 100, 80)
     private val timeLabel = JLabel("00:00 / 00:00")
+    private val volumeValueLabel = JLabel("80%")
     private val fileNameLabel = JLabel(file.name)
     private val statusLabel = JLabel("")
+
+    // Analysis panel components
+    private val analyzeWaveformButton = JButton("Waveform")
+    private val analyzeSpectrumButton = JButton("Spectrum")
+    private val imageLabel = JLabel("", SwingConstants.CENTER)
+
+    // Info panel table
+    private val infoTableModel = object : DefaultTableModel(arrayOf("Property", "Value"), 0) {
+        override fun isCellEditable(row: Int, column: Int) = false
+    }
+    private val infoTable = JTable(infoTableModel)
 
     private var isSeeking = false
     private var positionTimer: Timer? = null
 
     init {
-        border = JBUI.Borders.empty(20)
+        border = JBUI.Borders.empty(8)
         background = JBColor.background()
         setupUI()
         setupListeners()
@@ -33,6 +47,62 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
     }
 
     private fun setupUI() {
+        // === Top-left: Info Panel ===
+        val infoPanel = createInfoPanel()
+
+        // === Top-right: Controls Panel ===
+        val controlsPanel = createControlsPanel()
+
+        // === Top: horizontal split (info | controls) ===
+        val topSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, infoPanel, controlsPanel).apply {
+            resizeWeight = 0.5
+            border = null
+            isOpaque = false
+        }
+
+        // === Bottom: Analyze panel ===
+        val analyzePanel = createAnalyzePanel()
+
+        // === Main: vertical split (top | bottom) ===
+        val mainSplit = JSplitPane(JSplitPane.VERTICAL_SPLIT, topSplit, analyzePanel).apply {
+            resizeWeight = 0.5
+            border = null
+            isOpaque = false
+        }
+
+        add(mainSplit, BorderLayout.CENTER)
+
+        // Set divider locations to 50% after layout is realized
+        addComponentListener(object : java.awt.event.ComponentAdapter() {
+            override fun componentResized(e: java.awt.event.ComponentEvent?) {
+                mainSplit.setDividerLocation(0.5)
+                topSplit.setDividerLocation(0.5)
+            }
+        })
+    }
+
+    private fun createInfoPanel(): JPanel {
+        infoTable.apply {
+            tableHeader.reorderingAllowed = false
+            setShowGrid(false)
+            intercellSpacing = Dimension(0, 0)
+            rowHeight = 22
+        }
+        infoTable.columnModel.getColumn(0).preferredWidth = 100
+        infoTable.columnModel.getColumn(1).preferredWidth = 200
+
+        // Initially show file name
+        infoTableModel.addRow(arrayOf("File", file.name))
+        infoTableModel.addRow(arrayOf("Status", "Loading..."))
+
+        return JPanel(BorderLayout()).apply {
+            isOpaque = false
+            border = JBUI.Borders.empty(8)
+            add(JScrollPane(infoTable), BorderLayout.CENTER)
+        }
+    }
+
+    private fun createControlsPanel(): JPanel {
         fileNameLabel.font = fileNameLabel.font.deriveFont(Font.BOLD, 16f)
         fileNameLabel.horizontalAlignment = SwingConstants.CENTER
 
@@ -40,7 +110,7 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
             isOpaque = false
             add(fileNameLabel, BorderLayout.CENTER)
             add(timeLabel, BorderLayout.EAST)
-            border = JBUI.Borders.emptyBottom(16)
+            border = JBUI.Borders.emptyBottom(12)
         }
 
         seekSlider.apply {
@@ -51,7 +121,7 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         val seekPanel = JPanel(BorderLayout()).apply {
             isOpaque = false
             add(seekSlider, BorderLayout.CENTER)
-            border = JBUI.Borders.emptyBottom(12)
+            border = JBUI.Borders.emptyBottom(8)
         }
 
         playPauseButton.apply {
@@ -69,7 +139,7 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
             preferredSize = Dimension(60, 40)
         }
 
-        val controlsPanel = JPanel(FlowLayout(FlowLayout.CENTER, 8, 0)).apply {
+        val buttonsPanel = JPanel(FlowLayout(FlowLayout.CENTER, 8, 0)).apply {
             isOpaque = false
             add(playPauseButton)
             add(stopButton)
@@ -82,12 +152,14 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
             preferredSize = Dimension(120, 20)
             toolTipText = "Volume"
         }
+        volumeValueLabel.preferredSize = Dimension(36, 20)
 
         val volumePanel = JPanel(FlowLayout(FlowLayout.CENTER, 4, 0)).apply {
             isOpaque = false
             add(volumeLabel)
             add(volumeSlider)
-            border = JBUI.Borders.emptyTop(8)
+            add(volumeValueLabel)
+            border = JBUI.Borders.emptyTop(4)
         }
 
         statusLabel.apply {
@@ -100,18 +172,40 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
             isOpaque = false
             add(topPanel)
             add(seekPanel)
-            add(controlsPanel)
+            add(buttonsPanel)
             add(volumePanel)
-            add(Box.createVerticalStrut(8))
+            add(Box.createVerticalStrut(4))
             add(statusLabel)
         }
 
-        val wrapperPanel = JPanel(GridBagLayout()).apply {
+        return JPanel(BorderLayout()).apply {
             isOpaque = false
-            add(centerPanel)
+            border = JBUI.Borders.empty(8)
+            add(centerPanel, BorderLayout.CENTER)
+        }
+    }
+
+    private fun createAnalyzePanel(): JPanel {
+        analyzeWaveformButton.toolTipText = "Generate waveform image"
+        analyzeSpectrumButton.toolTipText = "Generate spectrum image"
+
+        val buttonPanel = JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
+            isOpaque = false
+            add(analyzeWaveformButton)
+            add(analyzeSpectrumButton)
         }
 
-        add(wrapperPanel, BorderLayout.CENTER)
+        imageLabel.apply {
+            horizontalAlignment = SwingConstants.CENTER
+            verticalAlignment = SwingConstants.CENTER
+        }
+
+        return JPanel(BorderLayout()).apply {
+            isOpaque = false
+            border = JBUI.Borders.empty(8)
+            add(buttonPanel, BorderLayout.NORTH)
+            add(imageLabel, BorderLayout.CENTER)
+        }
     }
 
     private fun setupListeners() {
@@ -146,6 +240,7 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
         }
 
         volumeSlider.addChangeListener {
+            volumeValueLabel.text = "${volumeSlider.value}%"
             playerService.setVolume(volumeSlider.value.toFloat())
         }
 
@@ -175,18 +270,104 @@ class AudioPlayerPanel(private val file: VirtualFile) : JPanel(BorderLayout()) {
                 statusLabel.text = message
             }
         }
+
+        analyzeWaveformButton.addActionListener {
+            analyzeWaveformButton.isEnabled = false
+            imageLabel.text = "Generating waveform..."
+            imageLabel.icon = null
+            Thread {
+                val icon = AudioAnalyzer.generateWaveform(File(file.path), 800, 200)
+                SwingUtilities.invokeLater {
+                    if (icon != null) {
+                        imageLabel.text = null
+                        imageLabel.icon = icon
+                    } else {
+                        imageLabel.text = "Failed to generate waveform (ffmpeg required)"
+                    }
+                    analyzeWaveformButton.isEnabled = true
+                }
+            }.start()
+        }
+
+        analyzeSpectrumButton.addActionListener {
+            analyzeSpectrumButton.isEnabled = false
+            imageLabel.text = "Generating spectrum..."
+            imageLabel.icon = null
+            Thread {
+                val icon = AudioAnalyzer.generateSpectrum(File(file.path), 800, 200)
+                SwingUtilities.invokeLater {
+                    if (icon != null) {
+                        imageLabel.text = null
+                        imageLabel.icon = icon
+                    } else {
+                        imageLabel.text = "Failed to generate spectrum (ffmpeg required)"
+                    }
+                    analyzeSpectrumButton.isEnabled = true
+                }
+            }.start()
+        }
+
+        // Space key toggles play/pause
+        val spaceKey = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0)
+        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(spaceKey, "togglePlayPause")
+        actionMap.put("togglePlayPause", object : AbstractAction() {
+            override fun actionPerformed(e: java.awt.event.ActionEvent?) {
+                when (playerService.state) {
+                    AudioPlayerService.PlaybackState.PLAYING -> playerService.pause()
+                    else -> playerService.play()
+                }
+            }
+        })
     }
 
     private fun loadFile() {
         statusLabel.text = "Loading..."
+        imageLabel.text = "Generating spectrum..."
         Thread {
+            // Probe metadata
+            val metadata = AudioProbe.probe(File(file.path))
+
+            // Load audio
             playerService.load(File(file.path))
+
+            // Generate spectrum automatically
+            val spectrumIcon = AudioAnalyzer.generateSpectrum(File(file.path), 800, 200)
+
             SwingUtilities.invokeLater {
-                statusLabel.text = ""
-                playerService.setVolume(volumeSlider.value.toFloat())
+                if (playerService.totalMicroseconds > 0) {
+                    statusLabel.text = ""
+                    playerService.setVolume(volumeSlider.value.toFloat())
+                } else if (statusLabel.text == "Loading...") {
+                    statusLabel.text = "Failed to load audio file"
+                }
                 updateTimeLabel(0, playerService.totalMicroseconds)
+                updateInfoTable(metadata)
+
+                if (spectrumIcon != null) {
+                    imageLabel.text = null
+                    imageLabel.icon = spectrumIcon
+                } else {
+                    imageLabel.text = ""
+                }
             }
         }.start()
+    }
+
+    private fun updateInfoTable(metadata: AudioMetadata?) {
+        infoTableModel.rowCount = 0
+        infoTableModel.addRow(arrayOf("File", file.name))
+
+        if (metadata != null) {
+            infoTableModel.addRow(arrayOf("Encoding", metadata.encoding))
+            infoTableModel.addRow(arrayOf("Format", metadata.format))
+            infoTableModel.addRow(arrayOf("Channels", AudioProbe.formatChannels(metadata.channels, metadata.channelLayout)))
+            infoTableModel.addRow(arrayOf("Sample Rate", AudioProbe.formatSampleRate(metadata.sampleRate)))
+            infoTableModel.addRow(arrayOf("File Size", AudioProbe.formatFileSize(metadata.fileSize)))
+            val durationStr = AudioPlayerService.formatTime(metadata.durationSeconds.toLong())
+            infoTableModel.addRow(arrayOf("Duration", durationStr))
+        } else {
+            infoTableModel.addRow(arrayOf("Info", "Metadata unavailable (ffprobe required)"))
+        }
     }
 
     private fun startPositionTimer() {
