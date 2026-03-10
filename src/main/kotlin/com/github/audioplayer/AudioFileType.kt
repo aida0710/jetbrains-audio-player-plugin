@@ -18,20 +18,5 @@ class AudioFileType private constructor() : FileType {
 
     companion object {
         val INSTANCE = AudioFileType()
-
-        val EXTENSIONS =
-            listOf(
-                "mp3",
-                "wav",
-                "ogg",
-                "flac",
-                "aac",
-                "m4a",
-                "wma",
-                "opus",
-                "ape",
-                "aiff",
-                "aif",
-            )
     }
 }

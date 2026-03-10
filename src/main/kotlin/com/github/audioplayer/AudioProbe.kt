@@ -82,18 +82,22 @@ object AudioProbe {
         fileSize: Long,
     ): AudioMetadata? =
         try {
-            // Simple JSON parsing without external library
+            // 外部ライブラリなしのシンプルなJSON解析
             val codecName = extractJsonValue(json, "codec_name") ?: "unknown"
             val sampleFmt = extractJsonValue(json, "sample_fmt") ?: "unknown"
             val channels = extractJsonValue(json, "channels")?.toIntOrNull() ?: 0
             val channelLayout =
                 extractJsonValue(json, "channel_layout")
-                    ?: if (channels == 1) {
-                        "mono"
-                    } else if (channels == 2) {
-                        "stereo"
-                    } else {
-                        "${channels}ch"
+                    ?: when (channels) {
+                        1 -> {
+                            "mono"
+                        }
+                        2 -> {
+                            "stereo"
+                        }
+                        else -> {
+                            "${channels}ch"
+                        }
                     }
             val sampleRate = extractJsonValue(json, "sample_rate")?.toIntOrNull() ?: 0
             val duration = extractJsonValue(json, "duration")?.toDoubleOrNull() ?: 0.0
@@ -116,7 +120,7 @@ object AudioProbe {
         json: String,
         key: String,
     ): String? {
-        // Match "key": "value" or "key": number
+        // "key": "value" または "key": 数値 にマッチ
         val pattern = """"$key"\s*:\s*"?([^",}\n]+)"?""".toRegex()
         return pattern
             .find(json)

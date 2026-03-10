@@ -31,7 +31,7 @@ object AudioConverter {
     fun isSupportedExtension(extension: String?): Boolean = extension?.lowercase() in SUPPORTED_EXTENSIONS
 
     fun findFfmpeg(): String? {
-        // 1. Try PATH via `which`
+        // PATHから`which`で検索
         try {
             val process =
                 ProcessBuilder("which", "ffmpeg")
@@ -50,7 +50,7 @@ object AudioConverter {
             LOG.info("'which ffmpeg' failed: ${e.message}")
         }
 
-        // 2. Try known locations
+        // 既知のパスから検索
         for (path in FFMPEG_SEARCH_PATHS) {
             if (File(path).exists()) {
                 LOG.info("Found ffmpeg at known path: $path")

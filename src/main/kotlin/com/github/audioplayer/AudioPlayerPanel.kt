@@ -25,12 +25,12 @@ class AudioPlayerPanel(
     private val fileNameLabel = JLabel(file.name)
     private val statusLabel = JLabel("")
 
-    // Analysis panel components
+    // 解析パネルのコンポーネント
     private val analyzeWaveformButton = JButton("Waveform")
     private val analyzeSpectrumButton = JButton("Spectrum")
     private val imageLabel = JLabel("", SwingConstants.CENTER)
 
-    // Info panel table
+    // 情報パネルのテーブル
     private val infoTableModel =
         object : DefaultTableModel(arrayOf("Property", "Value"), 0) {
             override fun isCellEditable(
@@ -52,13 +52,13 @@ class AudioPlayerPanel(
     }
 
     private fun setupUI() {
-        // === Top-left: Info Panel ===
+        // 左上: 情報パネル
         val infoPanel = createInfoPanel()
 
-        // === Top-right: Controls Panel ===
+        // 右上: コントロールパネル
         val controlsPanel = createControlsPanel()
 
-        // === Top: horizontal split (info | controls) ===
+        // 上部: 左右分割 (情報 | コントロール)
         val topSplit =
             JSplitPane(JSplitPane.HORIZONTAL_SPLIT, infoPanel, controlsPanel).apply {
                 resizeWeight = 0.5
@@ -66,10 +66,10 @@ class AudioPlayerPanel(
                 isOpaque = false
             }
 
-        // === Bottom: Analyze panel ===
+        // 下部: 解析パネル
         val analyzePanel = createAnalyzePanel()
 
-        // === Main: vertical split (top | bottom) ===
+        // メイン: 上下分割
         val mainSplit =
             JSplitPane(JSplitPane.VERTICAL_SPLIT, topSplit, analyzePanel).apply {
                 resizeWeight = 0.5
@@ -79,7 +79,7 @@ class AudioPlayerPanel(
 
         add(mainSplit, BorderLayout.CENTER)
 
-        // Set divider locations to 50% after layout is realized
+        // レイアウト確定後に分割位置を50%に設定
         addComponentListener(
             object : java.awt.event.ComponentAdapter() {
                 override fun componentResized(e: java.awt.event.ComponentEvent?) {
@@ -100,7 +100,7 @@ class AudioPlayerPanel(
         infoTable.columnModel.getColumn(0).preferredWidth = 100
         infoTable.columnModel.getColumn(1).preferredWidth = 200
 
-        // Initially show file name
+        // 初期表示
         infoTableModel.addRow(arrayOf("File", file.name))
         infoTableModel.addRow(arrayOf("Status", "Loading..."))
 
@@ -322,7 +322,7 @@ class AudioPlayerPanel(
             }.start()
         }
 
-        // Space key toggles play/pause
+        // Spaceキーで再生/一時停止を切り替え
         val spaceKey = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0)
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(spaceKey, "togglePlayPause")
         actionMap.put(
@@ -342,13 +342,13 @@ class AudioPlayerPanel(
         statusLabel.text = "Loading..."
         imageLabel.text = "Generating spectrum..."
         Thread {
-            // Probe metadata
+            // メタデータ取得
             val metadata = AudioProbe.probe(File(file.path))
 
-            // Load audio
+            // 音声読み込み
             playerService.load(File(file.path))
 
-            // Generate spectrum automatically
+            // スペクトラムを自動生成
             val spectrumIcon = AudioAnalyzer.generateSpectrum(File(file.path), 800, 200)
 
             SwingUtilities.invokeLater {

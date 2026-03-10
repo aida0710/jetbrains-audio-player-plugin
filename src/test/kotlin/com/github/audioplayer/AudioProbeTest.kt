@@ -4,7 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AudioProbeTest {
-    // --- parseJson tests ---
+    // --- parseJson テスト ---
 
     @Test
     fun `parseJson extracts metadata from ffprobe JSON`() {
@@ -101,7 +101,7 @@ class AudioProbeTest {
         assertEquals("6ch", metadata!!.channelLayout)
     }
 
-    // --- formatFileSize tests ---
+    // --- formatFileSize テスト ---
 
     @Test
     fun `formatFileSize formats bytes`() {
@@ -123,7 +123,7 @@ class AudioProbeTest {
         assertEquals("2.0 GB", AudioProbe.formatFileSize(2_000_000_000))
     }
 
-    // --- formatSampleRate tests ---
+    // --- formatSampleRate テスト ---
 
     @Test
     fun `formatSampleRate formats 44100 Hz`() {
@@ -135,7 +135,7 @@ class AudioProbeTest {
         assertEquals("48,000 Hz", AudioProbe.formatSampleRate(48000))
     }
 
-    // --- formatChannels tests ---
+    // --- formatChannels テスト ---
 
     @Test
     fun `formatChannels formats mono`() {

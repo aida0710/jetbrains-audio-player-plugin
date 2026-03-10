@@ -39,7 +39,7 @@ class AudioConverterTest {
     @Test
     fun `findFfmpeg returns path when ffmpeg is installed`() {
         val path = AudioConverter.findFfmpeg()
-        // ffmpeg should be installed on the dev machine
+        // 開発マシンにffmpegがインストールされている前提
         assertNotNull("ffmpeg not found on PATH", path)
         assertTrue(File(path!!).exists())
     }

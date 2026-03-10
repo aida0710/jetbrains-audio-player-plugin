@@ -112,7 +112,7 @@ class AudioPlayerService {
                 }
             gainControl.value = dB.coerceIn(gainControl.minimum, gainControl.maximum)
         } catch (_: Exception) {
-            // Volume control not available
+            // 音量コントロール非対応
         }
     }
 
