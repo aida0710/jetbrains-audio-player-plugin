@@ -31,6 +31,10 @@ class AudioFileEditor(
 
     override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
 
+    override fun deselectNotify() {
+        panel.pausePlayback()
+    }
+
     override fun dispose() {
         panel.dispose()
     }

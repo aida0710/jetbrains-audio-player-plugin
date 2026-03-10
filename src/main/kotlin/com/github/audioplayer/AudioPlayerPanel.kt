@@ -435,6 +435,12 @@ class AudioPlayerPanel(
         timeLabel.text = "${AudioPlayerService.formatTime(currentSec)} / ${AudioPlayerService.formatTime(totalSec)}"
     }
 
+    fun pausePlayback() {
+        if (playerService.state == AudioPlayerService.PlaybackState.PLAYING) {
+            playerService.pause()
+        }
+    }
+
     fun dispose() {
         stopPositionTimer()
         playerService.dispose()
