@@ -68,5 +68,12 @@
             implementation="com.github.audioplayer.AudioFileEditorProvider"
             id="audioFileEditor"
             order="first"/>
+        <applicationService
+            serviceImplementation="com.github.audioplayer.AudioPlayerSettings"/>
+        <applicationConfigurable
+            parentId="tools"
+            id="tools.audioplayer"
+            displayName="Audio Player"
+            instance="com.github.audioplayer.AudioPlayerSettingsConfigurable"/>
     </extensions>
 </idea-plugin>

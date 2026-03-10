@@ -21,46 +21,7 @@ object AudioConverter {
             "aif",
         )
 
-    private val FFMPEG_SEARCH_PATHS =
-        listOf(
-            "/opt/homebrew/bin/ffmpeg",
-            "/usr/local/bin/ffmpeg",
-            "/usr/bin/ffmpeg",
-        )
-
     fun isSupportedExtension(extension: String?): Boolean = extension?.lowercase() in SUPPORTED_EXTENSIONS
-
-    fun findFfmpeg(): String? {
-        // PATHから`which`で検索
-        try {
-            val process =
-                ProcessBuilder("which", "ffmpeg")
-                    .redirectErrorStream(true)
-                    .start()
-            val result =
-                process.inputStream
-                    .bufferedReader()
-                    .readText()
-                    .trim()
-            if (process.waitFor() == 0 && result.isNotEmpty()) {
-                LOG.info("Found ffmpeg via PATH: $result")
-                return result
-            }
-        } catch (e: Exception) {
-            LOG.info("'which ffmpeg' failed: ${e.message}")
-        }
-
-        // 既知のパスから検索
-        for (path in FFMPEG_SEARCH_PATHS) {
-            if (File(path).exists()) {
-                LOG.info("Found ffmpeg at known path: $path")
-                return path
-            }
-        }
-
-        LOG.warn("ffmpeg not found")
-        return null
-    }
 
     fun convertToWav(sourceFile: File): File? {
         LOG.info("convertToWav called for: ${sourceFile.absolutePath}, exists=${sourceFile.exists()}")
@@ -86,7 +47,7 @@ object AudioConverter {
     }
 
     private fun convertWithFfmpeg(sourceFile: File): File? {
-        val ffmpeg = findFfmpeg()
+        val ffmpeg = FfmpegPathUtil.findFfmpeg()
         if (ffmpeg == null) {
             LOG.error("ffmpeg not found. Please install ffmpeg (e.g. brew install ffmpeg)")
             return null

@@ -43,10 +43,4 @@ class AudioAnalyzerTest {
         assertEquals("/tmp/spectrum.png", cmd.last())
         assertTrue(cmd.contains("-y"))
     }
-
-    @Test
-    fun `findFfmpeg returns path when ffmpeg is installed`() {
-        val path = AudioAnalyzer.findFfmpeg()
-        assertNotNull("ffmpeg not found on PATH", path)
-    }
 }

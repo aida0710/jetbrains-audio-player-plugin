@@ -30,11 +30,16 @@ dependencies {
 }
 
 intellijPlatform {
+    buildSearchableOptions = false
     pluginConfiguration {
         id = "com.github.audioplayer"
         name = "Audio Player"
         version = pluginVersion
         description = "Play audio files directly in the editor with playback controls."
+        ideaVersion {
+            sinceBuild = "${platformVersion.substring(2, 4)}${platformVersion.last()}" // "2024.3" -> "243"
+            untilBuild = provider { null }
+        }
     }
     signing {
         certificateChainFile.set(file(System.getenv("CERTIFICATE_CHAIN") ?: "chain.crt"))
@@ -65,3 +70,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
+

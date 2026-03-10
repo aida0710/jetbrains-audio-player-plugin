@@ -1,6 +1,8 @@
 package com.github.audioplayer
 
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.HyperlinkLabel
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.*
@@ -24,6 +26,13 @@ class AudioPlayerPanel(
     private val volumeValueLabel = JLabel("80%")
     private val fileNameLabel = JLabel(file.name)
     private val statusLabel = JLabel("")
+    private val settingsLink =
+        HyperlinkLabel("ffmpeg/ffprobe が見つかりません。設定で設定してください").apply {
+            addHyperlinkListener {
+                ShowSettingsUtil.getInstance().showSettingsDialog(null, AudioPlayerSettingsConfigurable::class.java)
+            }
+            isVisible = false
+        }
 
     // 解析パネルのコンポーネント
     private val analyzeWaveformButton = JButton("Waveform")
@@ -190,6 +199,7 @@ class AudioPlayerPanel(
                 add(volumePanel)
                 add(Box.createVerticalStrut(4))
                 add(statusLabel)
+                add(settingsLink)
             }
 
         return JPanel(BorderLayout()).apply {
@@ -358,6 +368,12 @@ class AudioPlayerPanel(
                 } else if (statusLabel.text == "Loading...") {
                     statusLabel.text = "Failed to load audio file"
                 }
+
+                // ffmpeg/ffprobe が見つからない場合は設定リンクを表示
+                val ffmpegMissing = FfmpegPathUtil.findFfmpeg() == null
+                val ffprobeMissing = FfmpegPathUtil.findFfprobe() == null
+                settingsLink.isVisible = ffmpegMissing || ffprobeMissing
+
                 updateTimeLabel(0, playerService.totalMicroseconds)
                 updateInfoTable(metadata)
 

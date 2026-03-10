@@ -1,5 +1,7 @@
 # Audio Player - JetBrains IDE プラグイン
 
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/30608-audio-player.svg)](https://plugins.jetbrains.com/plugin/30608-audio-player)
+
 JetBrains IDE 上で音声ファイルを直接再生できるプラグインです。
 
 ## 機能

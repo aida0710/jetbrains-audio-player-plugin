@@ -16,32 +16,10 @@ data class AudioMetadata(
 object AudioProbe {
     private val LOG = Logger.getInstance(AudioProbe::class.java)
 
-    fun findFfprobe(): String? {
-        try {
-            val process =
-                ProcessBuilder("which", "ffprobe")
-                    .redirectErrorStream(true)
-                    .start()
-            val result =
-                process.inputStream
-                    .bufferedReader()
-                    .readText()
-                    .trim()
-            if (process.waitFor() == 0 && result.isNotEmpty()) return result
-        } catch (_: Exception) {
-        }
-
-        val paths = listOf("/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe", "/usr/bin/ffprobe")
-        for (path in paths) {
-            if (File(path).exists()) return path
-        }
-        return null
-    }
-
     fun probe(file: File): AudioMetadata? {
         if (!file.exists()) return null
 
-        val ffprobe = findFfprobe()
+        val ffprobe = FfmpegPathUtil.findFfprobe()
         if (ffprobe == null) {
             LOG.warn("ffprobe not found")
             return null

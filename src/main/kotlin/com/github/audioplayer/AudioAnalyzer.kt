@@ -7,28 +7,6 @@ import javax.swing.ImageIcon
 object AudioAnalyzer {
     private val LOG = Logger.getInstance(AudioAnalyzer::class.java)
 
-    fun findFfmpeg(): String? {
-        try {
-            val process =
-                ProcessBuilder("which", "ffmpeg")
-                    .redirectErrorStream(true)
-                    .start()
-            val result =
-                process.inputStream
-                    .bufferedReader()
-                    .readText()
-                    .trim()
-            if (process.waitFor() == 0 && result.isNotEmpty()) return result
-        } catch (_: Exception) {
-        }
-
-        val paths = listOf("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg")
-        for (path in paths) {
-            if (File(path).exists()) return path
-        }
-        return null
-    }
-
     fun buildWaveformCommand(
         ffmpegPath: String,
         inputPath: String,
@@ -86,7 +64,7 @@ object AudioAnalyzer {
         commandBuilder: (String, String, String, Int, Int) -> List<String>,
     ): ImageIcon? {
         val ffmpeg =
-            findFfmpeg() ?: run {
+            FfmpegPathUtil.findFfmpeg() ?: run {
                 LOG.warn("ffmpeg not found")
                 return null
             }
