@@ -14,18 +14,31 @@ object AudioAnalyzer {
         outputPath: String,
         width: Int,
         height: Int,
-    ): List<String> =
-        listOf(
-            ffmpegPath,
-            "-i",
-            inputPath,
-            "-filter_complex",
-            "showwavespic=s=${width}x$height:colors=0x4488CC",
-            "-frames:v",
-            "1",
-            "-y",
-            outputPath,
-        )
+        startSec: Double? = null,
+        lenSec: Double? = null,
+        splitChannels: Boolean = false,
+    ): List<String> {
+        val split = if (splitChannels) ":split_channels=1" else ""
+        return buildList {
+            add(ffmpegPath)
+            if (startSec != null) {
+                add("-ss")
+                add(startSec.toString())
+            }
+            if (lenSec != null) {
+                add("-t")
+                add(lenSec.toString())
+            }
+            add("-i")
+            add(inputPath)
+            add("-filter_complex")
+            add("showwavespic=s=${width}x$height$split:colors=0x4488CC")
+            add("-frames:v")
+            add("1")
+            add("-y")
+            add(outputPath)
+        }
+    }
 
     fun buildSpectrumCommand(
         ffmpegPath: String,
@@ -33,30 +46,51 @@ object AudioAnalyzer {
         outputPath: String,
         width: Int,
         height: Int,
+        startSec: Double? = null,
+        lenSec: Double? = null,
     ): List<String> =
-        listOf(
-            ffmpegPath,
-            "-i",
-            inputPath,
-            "-filter_complex",
-            "showspectrumpic=s=${width}x$height",
-            "-frames:v",
-            "1",
-            "-y",
-            outputPath,
-        )
+        buildList {
+            add(ffmpegPath)
+            if (startSec != null) {
+                add("-ss")
+                add(startSec.toString())
+            }
+            if (lenSec != null) {
+                add("-t")
+                add(lenSec.toString())
+            }
+            add("-i")
+            add(inputPath)
+            add("-filter_complex")
+            add("showspectrumpic=s=${width}x$height")
+            add("-frames:v")
+            add("1")
+            add("-y")
+            add(outputPath)
+        }
 
     fun generateWaveformImage(
         file: File,
         width: Int,
         height: Int,
-    ): BufferedImage? = generateImage(file, width, height, ::buildWaveformCommand)
+        startSec: Double? = null,
+        lenSec: Double? = null,
+        splitChannels: Boolean = false,
+    ): BufferedImage? =
+        generateImage(file, width, height) { ffmpeg, input, output, w, h ->
+            buildWaveformCommand(ffmpeg, input, output, w, h, startSec, lenSec, splitChannels)
+        }
 
     fun generateSpectrumImage(
         file: File,
         width: Int,
         height: Int,
-    ): BufferedImage? = generateImage(file, width, height, ::buildSpectrumCommand)
+        startSec: Double? = null,
+        lenSec: Double? = null,
+    ): BufferedImage? =
+        generateImage(file, width, height) { ffmpeg, input, output, w, h ->
+            buildSpectrumCommand(ffmpeg, input, output, w, h, startSec, lenSec)
+        }
 
     private fun generateImage(
         file: File,
