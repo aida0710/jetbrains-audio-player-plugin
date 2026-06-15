@@ -11,6 +11,7 @@ data class AudioMetadata(
     val sampleRate: Int,
     val fileSize: Long,
     val durationSeconds: Double,
+    val tags: Map<String, String> = emptyMap(),
 )
 
 object AudioProbe {
@@ -88,6 +89,7 @@ object AudioProbe {
                 sampleRate = sampleRate,
                 fileSize = fileSize,
                 durationSeconds = duration,
+                tags = parseTags(json),
             )
         } catch (e: Exception) {
             LOG.error("Failed to parse ffprobe JSON", e)
@@ -121,4 +123,10 @@ object AudioProbe {
         channels: Int,
         layout: String,
     ): String = "$channels ch ($layout)"
+
+    fun parseTags(json: String): Map<String, String> {
+        val block = """"tags"\s*:\s*\{([^}]*)\}""".toRegex().find(json)?.groupValues?.get(1) ?: return emptyMap()
+        val pair = """"([^"]+)"\s*:\s*"([^"]*)"""".toRegex()
+        return pair.findAll(block).associate { it.groupValues[1].lowercase() to it.groupValues[2] }
+    }
 }

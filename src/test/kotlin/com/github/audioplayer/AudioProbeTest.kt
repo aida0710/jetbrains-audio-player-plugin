@@ -146,4 +146,25 @@ class AudioProbeTest {
     fun `formatChannels formats stereo`() {
         assertEquals("2 ch (stereo)", AudioProbe.formatChannels(2, "stereo"))
     }
+
+    @Test
+    fun `parseTags extracts format tags lowercased`() {
+        val json =
+            """
+            {
+                "format": {
+                    "tags": { "title": "Song", "ARTIST": "Band", "album": "Disc" }
+                }
+            }
+            """.trimIndent()
+        val tags = AudioProbe.parseTags(json)
+        assertEquals("Song", tags["title"])
+        assertEquals("Band", tags["artist"])
+        assertEquals("Disc", tags["album"])
+    }
+
+    @Test
+    fun `parseTags returns empty when no tags`() {
+        assertTrue(AudioProbe.parseTags("""{ "format": {} }""").isEmpty())
+    }
 }

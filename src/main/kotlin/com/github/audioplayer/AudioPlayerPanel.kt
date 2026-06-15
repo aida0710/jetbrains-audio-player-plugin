@@ -3,12 +3,14 @@ package com.github.audioplayer
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.HyperlinkLabel
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.*
+import java.awt.datatransfer.StringSelection
 import java.awt.event.KeyEvent
 import java.awt.image.BufferedImage
 import java.io.File
@@ -48,6 +50,10 @@ class AudioPlayerPanel(
     // 解析パネルのコンポーネント
     private val analyzeWaveformButton = JButton("Waveform")
     private val analyzeSpectrumButton = JButton("Spectrum")
+
+    // 情報パネルのアクションボタン
+    private val copyInfoButton = JButton("情報をコピー")
+    private val infoActionsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { isOpaque = false }
 
     // 情報パネルのテーブル
     private val infoTableModel =
@@ -134,10 +140,13 @@ class AudioPlayerPanel(
         infoTableModel.addRow(arrayOf("File", file.name))
         infoTableModel.addRow(arrayOf("Status", "Loading..."))
 
+        infoActionsPanel.add(copyInfoButton)
+
         return JPanel(BorderLayout()).apply {
             isOpaque = false
             border = JBUI.Borders.empty(8)
             add(JScrollPane(infoTable), BorderLayout.CENTER)
+            add(infoActionsPanel, BorderLayout.SOUTH)
         }
     }
 
@@ -349,6 +358,15 @@ class AudioPlayerPanel(
         visualizerToggle.addActionListener {
             applyVisualizerVisibility(visualizerToggle.isSelected)
         }
+
+        copyInfoButton.addActionListener {
+            val rows =
+                (0 until infoTableModel.rowCount).map {
+                    (infoTableModel.getValueAt(it, 0)?.toString() ?: "") to
+                        (infoTableModel.getValueAt(it, 1)?.toString() ?: "")
+                }
+            CopyPasteManager.getInstance().setContents(StringSelection(infoRowsToText(rows)))
+        }
     }
 
     private fun loadFile() {
@@ -399,6 +417,18 @@ class AudioPlayerPanel(
             infoTableModel.addRow(arrayOf("File Size", AudioProbe.formatFileSize(metadata.fileSize)))
             val durationStr = AudioPlayerService.formatTime(metadata.durationSeconds.toLong())
             infoTableModel.addRow(arrayOf("Duration", durationStr))
+            val tagLabels =
+                listOf(
+                    "title" to "Title",
+                    "artist" to "Artist",
+                    "album" to "Album",
+                    "date" to "Year",
+                    "genre" to "Genre",
+                    "track" to "Track",
+                )
+            for ((key, label) in tagLabels) {
+                metadata.tags[key]?.let { infoTableModel.addRow(arrayOf(label, it)) }
+            }
         } else {
             infoTableModel.addRow(arrayOf("Info", "Metadata unavailable (ffprobe required)"))
         }
@@ -546,5 +576,13 @@ class AudioPlayerPanel(
     companion object {
         private const val NOTIFICATION_GROUP_ID = "Audio Player"
         private var dependencyNotificationShown = false
+
+        fun infoRowsToText(rows: List<Pair<String, String>>): String =
+            rows.joinToString("\n") { "${it.first}\t${it.second}" }
+
+        fun defaultImageFileName(
+            baseName: String,
+            view: String,
+        ): String = "${baseName}_$view.png"
     }
 }
