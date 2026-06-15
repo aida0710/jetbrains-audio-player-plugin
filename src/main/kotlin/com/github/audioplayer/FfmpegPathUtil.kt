@@ -6,6 +6,32 @@ import java.io.File
 object FfmpegPathUtil {
     private val LOG = Logger.getInstance(FfmpegPathUtil::class.java)
 
+    fun isWindowsOs(osName: String): Boolean = osName.lowercase().contains("win")
+
+    fun locateCommand(windows: Boolean): String = if (windows) "where" else "which"
+
+    fun candidatePaths(
+        command: String,
+        windows: Boolean,
+        env: (String) -> String?,
+    ): List<String> =
+        if (!windows) {
+            listOf(
+                "/opt/homebrew/bin/$command",
+                "/usr/local/bin/$command",
+                "/usr/bin/$command",
+            )
+        } else {
+            val exe = "$command.exe"
+            buildList {
+                env("LOCALAPPDATA")?.let { add("$it\\Microsoft\\WinGet\\Links\\$exe") }
+                env("USERPROFILE")?.let { add("$it\\scoop\\shims\\$exe") }
+                add("C:\\ProgramData\\chocolatey\\bin\\$exe")
+                add("C:\\ffmpeg\\bin\\$exe")
+                add("${env("ProgramFiles") ?: "C:\\Program Files"}\\ffmpeg\\bin\\$exe")
+            }
+        }
+
     private val FFMPEG_SEARCH_PATHS =
         listOf(
             "/opt/homebrew/bin/ffmpeg",
