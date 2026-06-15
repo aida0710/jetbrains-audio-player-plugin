@@ -1,7 +1,9 @@
 package com.github.audioplayer
 
 import com.intellij.openapi.diagnostic.Logger
+import java.awt.image.BufferedImage
 import java.io.File
+import javax.imageio.ImageIO
 import javax.swing.ImageIcon
 
 object AudioAnalyzer {
@@ -45,24 +47,36 @@ object AudioAnalyzer {
             outputPath,
         )
 
+    fun generateWaveformImage(
+        file: File,
+        width: Int,
+        height: Int,
+    ): BufferedImage? = generateImage(file, width, height, ::buildWaveformCommand)
+
+    fun generateSpectrumImage(
+        file: File,
+        width: Int,
+        height: Int,
+    ): BufferedImage? = generateImage(file, width, height, ::buildSpectrumCommand)
+
     fun generateWaveform(
         file: File,
         width: Int,
         height: Int,
-    ): ImageIcon? = generateImage(file, width, height, ::buildWaveformCommand)
+    ): ImageIcon? = generateWaveformImage(file, width, height)?.let { ImageIcon(it) }
 
     fun generateSpectrum(
         file: File,
         width: Int,
         height: Int,
-    ): ImageIcon? = generateImage(file, width, height, ::buildSpectrumCommand)
+    ): ImageIcon? = generateSpectrumImage(file, width, height)?.let { ImageIcon(it) }
 
     private fun generateImage(
         file: File,
         width: Int,
         height: Int,
         commandBuilder: (String, String, String, Int, Int) -> List<String>,
-    ): ImageIcon? {
+    ): BufferedImage? {
         val ffmpeg =
             FfmpegPathUtil.findFfmpeg() ?: run {
                 LOG.warn("ffmpeg not found")
@@ -70,7 +84,6 @@ object AudioAnalyzer {
             }
 
         val outputFile = File.createTempFile("audioplayer_", ".png")
-        outputFile.deleteOnExit()
 
         return try {
             val cmd = commandBuilder(ffmpeg, file.absolutePath, outputFile.absolutePath, width, height)
@@ -83,15 +96,15 @@ object AudioAnalyzer {
 
             if (exitCode != 0 || !outputFile.exists() || outputFile.length() == 0L) {
                 LOG.error("ffmpeg image generation failed with exit code $exitCode")
-                outputFile.delete()
                 return null
             }
 
-            ImageIcon(outputFile.absolutePath)
+            ImageIO.read(outputFile)
         } catch (e: Exception) {
             LOG.error("Failed to generate image", e)
-            outputFile.delete()
             null
+        } finally {
+            outputFile.delete()
         }
     }
 }
