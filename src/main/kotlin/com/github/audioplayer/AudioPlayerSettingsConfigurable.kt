@@ -109,13 +109,9 @@ class AudioPlayerSettingsConfigurable : Configurable {
     }
 
     override fun apply() {
-        val settings = AudioPlayerSettings.instance
-        settings.loadState(
-            AudioPlayerSettings.SettingsState(
-                ffmpegPath = ffmpegPathField?.text.orEmpty(),
-                ffprobePath = ffprobePathField?.text.orEmpty(),
-            ),
-        )
+        val state = AudioPlayerSettings.instance.state
+        state.ffmpegPath = ffmpegPathField?.text.orEmpty()
+        state.ffprobePath = ffprobePathField?.text.orEmpty()
     }
 
     override fun reset() {
