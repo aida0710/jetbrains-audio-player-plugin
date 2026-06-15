@@ -14,6 +14,7 @@ import java.awt.datatransfer.StringSelection
 import java.awt.event.KeyEvent
 import java.awt.image.BufferedImage
 import java.io.File
+import javax.imageio.ImageIO
 import javax.swing.*
 import javax.swing.event.ChangeEvent
 import javax.swing.table.DefaultTableModel
@@ -50,6 +51,7 @@ class AudioPlayerPanel(
     // 解析パネルのコンポーネント
     private val analyzeWaveformButton = JButton("Waveform")
     private val analyzeSpectrumButton = JButton("Spectrum")
+    private val saveImageButton = JButton("画像を保存")
 
     // 情報パネルのアクションボタン
     private val copyInfoButton = JButton("情報をコピー")
@@ -254,6 +256,7 @@ class AudioPlayerPanel(
                 isOpaque = false
                 add(analyzeWaveformButton)
                 add(analyzeSpectrumButton)
+                add(saveImageButton)
             }
 
         return JPanel(BorderLayout()).apply {
@@ -398,6 +401,33 @@ class AudioPlayerPanel(
                         if (ok) NotificationType.INFORMATION else NotificationType.WARNING,
                     )
                     exportAudioButton.isEnabled = true
+                }
+            }.start()
+        }
+
+        saveImageButton.addActionListener {
+            val img = timelinePanel.image
+            if (img == null) {
+                notifyUser("保存する画像がありません。先に波形/スペクトラムを生成してください。", NotificationType.WARNING)
+                return@addActionListener
+            }
+            val chooser = JFileChooser()
+            chooser.selectedFile =
+                File(defaultImageFileName(File(file.path).nameWithoutExtension, settingsState.defaultView))
+            if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return@addActionListener
+            val out = chooser.selectedFile
+            Thread {
+                val ok =
+                    try {
+                        ImageIO.write(img, "png", out)
+                    } catch (e: Exception) {
+                        false
+                    }
+                SwingUtilities.invokeLater {
+                    notifyUser(
+                        if (ok) "画像を保存しました: ${out.name}" else "画像の保存に失敗しました",
+                        if (ok) NotificationType.INFORMATION else NotificationType.WARNING,
+                    )
                 }
             }.start()
         }
