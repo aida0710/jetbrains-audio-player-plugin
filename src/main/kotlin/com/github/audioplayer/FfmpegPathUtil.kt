@@ -32,49 +32,38 @@ object FfmpegPathUtil {
             }
         }
 
-    private val FFMPEG_SEARCH_PATHS =
-        listOf(
-            "/opt/homebrew/bin/ffmpeg",
-            "/usr/local/bin/ffmpeg",
-            "/usr/bin/ffmpeg",
-        )
+    fun autoDetectFfmpeg(): String? = autoDetect("ffmpeg")
 
-    private val FFPROBE_SEARCH_PATHS =
-        listOf(
-            "/opt/homebrew/bin/ffprobe",
-            "/usr/local/bin/ffprobe",
-            "/usr/bin/ffprobe",
-        )
+    fun autoDetectFfprobe(): String? = autoDetect("ffprobe")
 
-    fun autoDetectFfmpeg(): String? = autoDetect("ffmpeg", FFMPEG_SEARCH_PATHS)
+    private fun autoDetect(command: String): String? {
+        val windows = isWindowsOs(System.getProperty("os.name").orEmpty())
+        val locate = locateCommand(windows)
 
-    fun autoDetectFfprobe(): String? = autoDetect("ffprobe", FFPROBE_SEARCH_PATHS)
-
-    private fun autoDetect(
-        command: String,
-        searchPaths: List<String>,
-    ): String? {
-        // PATHから`which`で検索
+        // PATH から where/which で検索
         try {
             val process =
-                ProcessBuilder("which", command)
+                ProcessBuilder(locate, command)
                     .redirectErrorStream(true)
                     .start()
             val result =
                 process.inputStream
                     .bufferedReader()
                     .readText()
-                    .trim()
+                    .lineSequence()
+                    .map { it.trim() }
+                    .firstOrNull { it.isNotEmpty() }
+                    .orEmpty()
             if (process.waitFor() == 0 && result.isNotEmpty()) {
-                LOG.info("Found $command via PATH: $result")
+                LOG.info("Found $command via $locate: $result")
                 return result
             }
         } catch (e: Exception) {
-            LOG.info("'which $command' failed: ${e.message}")
+            LOG.info("'$locate $command' failed: ${e.message}")
         }
 
         // 既知のパスから検索
-        for (path in searchPaths) {
+        for (path in candidatePaths(command, windows) { System.getenv(it) }) {
             if (File(path).exists()) {
                 LOG.info("Found $command at known path: $path")
                 return path
