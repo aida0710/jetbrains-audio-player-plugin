@@ -6,7 +6,7 @@ import java.io.File
 object FfmpegPathUtil {
     private val LOG = Logger.getInstance(FfmpegPathUtil::class.java)
 
-    fun isWindowsOs(osName: String): Boolean = osName.lowercase().contains("win")
+    fun isWindowsOs(osName: String): Boolean = osName.lowercase().startsWith("win")
 
     fun locateCommand(windows: Boolean): String = if (windows) "where" else "which"
 
@@ -47,13 +47,13 @@ object FfmpegPathUtil {
                     .redirectErrorStream(true)
                     .start()
             val result =
-                process.inputStream
-                    .bufferedReader()
-                    .readText()
-                    .lineSequence()
-                    .map { it.trim() }
-                    .firstOrNull { it.isNotEmpty() }
-                    .orEmpty()
+                process.inputStream.bufferedReader().use { reader ->
+                    reader
+                        .lineSequence()
+                        .map { it.trim() }
+                        .firstOrNull { it.isNotEmpty() }
+                        .orEmpty()
+                }
             if (process.waitFor() == 0 && result.isNotEmpty()) {
                 LOG.info("Found $command via $locate: $result")
                 return result

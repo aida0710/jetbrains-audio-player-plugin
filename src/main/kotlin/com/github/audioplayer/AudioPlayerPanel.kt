@@ -357,6 +357,9 @@ class AudioPlayerPanel(
             val metadata = AudioProbe.probe(File(file.path))
             playerService.load(File(file.path))
 
+            val ffmpegMissing = FfmpegPathUtil.findFfmpeg() == null
+            val ffprobeMissing = FfmpegPathUtil.findFfprobe() == null
+
             SwingUtilities.invokeLater {
                 timelinePanel.durationMicros = playerService.totalMicroseconds
                 if (playerService.totalMicroseconds > 0) {
@@ -367,8 +370,6 @@ class AudioPlayerPanel(
                     statusLabel.text = "Failed to load audio file"
                 }
 
-                val ffmpegMissing = FfmpegPathUtil.findFfmpeg() == null
-                val ffprobeMissing = FfmpegPathUtil.findFfprobe() == null
                 settingsLink.isVisible = ffmpegMissing || ffprobeMissing
                 if (ffmpegMissing || ffprobeMissing) {
                     notifyDependencyMissing(ffmpegMissing, ffprobeMissing)
