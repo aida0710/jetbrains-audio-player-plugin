@@ -97,4 +97,24 @@ class AudioPlayerServiceTest {
         val service = AudioPlayerService()
         assertEquals(0L, service.currentMicroseconds)
     }
+
+    @Test
+    fun `computeSeekTarget adds positive delta`() {
+        assertEquals(15_000_000L, AudioPlayerService.computeSeekTarget(10_000_000L, 5_000_000L, 60_000_000L))
+    }
+
+    @Test
+    fun `computeSeekTarget clamps to zero on negative result`() {
+        assertEquals(0L, AudioPlayerService.computeSeekTarget(3_000_000L, -5_000_000L, 60_000_000L))
+    }
+
+    @Test
+    fun `computeSeekTarget clamps to total on overflow`() {
+        assertEquals(60_000_000L, AudioPlayerService.computeSeekTarget(58_000_000L, 5_000_000L, 60_000_000L))
+    }
+
+    @Test
+    fun `computeSeekTarget returns zero when total is zero`() {
+        assertEquals(0L, AudioPlayerService.computeSeekTarget(0L, 5_000_000L, 0L))
+    }
 }

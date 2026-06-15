@@ -143,6 +143,12 @@ class AudioPlayerService {
     }
 
     companion object {
+        fun computeSeekTarget(
+            currentMicros: Long,
+            deltaMicros: Long,
+            totalMicros: Long,
+        ): Long = (currentMicros + deltaMicros).coerceIn(0, totalMicros)
+
         fun formatTime(totalSeconds: Long): String {
             val hours = totalSeconds / 3600
             val minutes = (totalSeconds % 3600) / 60
