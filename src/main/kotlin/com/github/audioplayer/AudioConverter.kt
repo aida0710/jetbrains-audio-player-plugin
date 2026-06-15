@@ -46,6 +46,32 @@ object AudioConverter {
         return convertWithFfmpeg(sourceFile)
     }
 
+    fun buildExportCommand(
+        ffmpeg: String,
+        input: String,
+        output: String,
+    ): List<String> = listOf(ffmpeg, "-i", input, "-y", output)
+
+    fun export(
+        input: File,
+        output: File,
+    ): Boolean {
+        val ffmpeg = FfmpegPathUtil.findFfmpeg() ?: return false
+        return try {
+            val process =
+                ProcessBuilder(buildExportCommand(ffmpeg, input.absolutePath, output.absolutePath))
+                    .redirectErrorStream(true)
+                    .start()
+            val output2 = process.inputStream.bufferedReader().use { it.readText() }
+            val code = process.waitFor()
+            if (code != 0) LOG.error("ffmpeg export failed ($code): $output2")
+            code == 0
+        } catch (e: Exception) {
+            LOG.error("Export failed", e)
+            false
+        }
+    }
+
     private fun convertWithFfmpeg(sourceFile: File): File? {
         val ffmpeg = FfmpegPathUtil.findFfmpeg()
         if (ffmpeg == null) {

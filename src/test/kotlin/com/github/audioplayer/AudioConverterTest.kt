@@ -54,6 +54,12 @@ class AudioConverterTest {
         assertTrue(result!!.exists())
     }
 
+    @Test
+    fun `buildExportCommand builds ffmpeg convert command`() {
+        val cmd = AudioConverter.buildExportCommand("/bin/ffmpeg", "/tmp/in.wav", "/tmp/out.mp3")
+        assertEquals(listOf("/bin/ffmpeg", "-i", "/tmp/in.wav", "-y", "/tmp/out.mp3"), cmd)
+    }
+
     private fun createMinimalWavFile(file: File) {
         val header = ByteArray(44)
         "RIFF".toByteArray().copyInto(header, 0)

@@ -54,6 +54,7 @@ class AudioPlayerPanel(
     // 情報パネルのアクションボタン
     private val copyInfoButton = JButton("情報をコピー")
     private val measureLufsButton = JButton("ラウドネス測定")
+    private val exportAudioButton = JButton("別形式で書き出し")
     private val infoActionsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { isOpaque = false }
 
     // 情報パネルのテーブル
@@ -143,6 +144,7 @@ class AudioPlayerPanel(
 
         infoActionsPanel.add(copyInfoButton)
         infoActionsPanel.add(measureLufsButton)
+        infoActionsPanel.add(exportAudioButton)
 
         return JPanel(BorderLayout()).apply {
             isOpaque = false
@@ -381,6 +383,24 @@ class AudioPlayerPanel(
                 }
             }.start()
         }
+
+        exportAudioButton.addActionListener {
+            val chooser = JFileChooser()
+            chooser.selectedFile = File("${File(file.path).nameWithoutExtension}.mp3")
+            if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return@addActionListener
+            val output = chooser.selectedFile
+            exportAudioButton.isEnabled = false
+            Thread {
+                val ok = AudioConverter.export(File(file.path), output)
+                SwingUtilities.invokeLater {
+                    notifyUser(
+                        if (ok) "書き出し完了: ${output.name}" else "書き出しに失敗しました (ffmpeg required)",
+                        if (ok) NotificationType.INFORMATION else NotificationType.WARNING,
+                    )
+                    exportAudioButton.isEnabled = true
+                }
+            }.start()
+        }
     }
 
     private fun loadFile() {
@@ -532,6 +552,17 @@ class AudioPlayerPanel(
                 topSplit.setDividerLocation(0.5)
             }
         }
+    }
+
+    private fun notifyUser(
+        content: String,
+        type: NotificationType,
+    ) {
+        NotificationGroupManager
+            .getInstance()
+            .getNotificationGroup(NOTIFICATION_GROUP_ID)
+            ?.createNotification("Audio Player", content, type)
+            ?.notify(null)
     }
 
     private fun notifyDependencyMissing(
