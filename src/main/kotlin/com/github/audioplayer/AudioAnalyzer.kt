@@ -4,7 +4,6 @@ import com.intellij.openapi.diagnostic.Logger
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
-import javax.swing.ImageIcon
 
 object AudioAnalyzer {
     private val LOG = Logger.getInstance(AudioAnalyzer::class.java)
@@ -58,18 +57,6 @@ object AudioAnalyzer {
         width: Int,
         height: Int,
     ): BufferedImage? = generateImage(file, width, height, ::buildSpectrumCommand)
-
-    fun generateWaveform(
-        file: File,
-        width: Int,
-        height: Int,
-    ): ImageIcon? = generateWaveformImage(file, width, height)?.let { ImageIcon(it) }
-
-    fun generateSpectrum(
-        file: File,
-        width: Int,
-        height: Int,
-    ): ImageIcon? = generateSpectrumImage(file, width, height)?.let { ImageIcon(it) }
 
     private fun generateImage(
         file: File,
