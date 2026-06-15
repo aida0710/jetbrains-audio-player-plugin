@@ -27,6 +27,7 @@ class AudioPlayerPanel(
     private val playPauseButton = JButton("\u25B6")
     private val stopButton = JButton("\u23F9")
     private val loopButton = JToggleButton("Loop")
+    private val visualizerToggle = JCheckBox("ビジュアライザを表示", true)
     private val seekSlider = JSlider(0, 1000, 0)
     private val volumeSlider = JSlider(0, 100, 80)
     private val timeLabel = JLabel("00:00 / 00:00")
@@ -216,6 +217,8 @@ class AudioPlayerPanel(
                 add(Box.createVerticalStrut(4))
                 add(statusLabel)
                 add(settingsLink)
+                add(Box.createVerticalStrut(4))
+                add(visualizerToggle.apply { alignmentX = java.awt.Component.CENTER_ALIGNMENT })
             }
 
         return JPanel(BorderLayout()).apply {
@@ -337,6 +340,11 @@ class AudioPlayerPanel(
         registerSeekKey(KeyEvent.VK_LEFT, "seekBackward") { seekRelative(-5_000_000) }
         registerSeekKey(KeyEvent.VK_RIGHT, "seekForward") { seekRelative(5_000_000) }
         registerSeekKey(KeyEvent.VK_HOME, "seekStart") { seekToMicros(0) }
+
+        visualizerToggle.isSelected = settingsState.showVisualizer
+        visualizerToggle.addActionListener {
+            applyVisualizerVisibility(visualizerToggle.isSelected)
+        }
     }
 
     private fun loadFile() {
@@ -439,6 +447,24 @@ class AudioPlayerPanel(
                 }
             }
         }.start()
+    }
+
+    private fun applyVisualizerVisibility(show: Boolean) {
+        settingsState.showVisualizer = show
+        remove(currentCenter)
+        currentCenter = if (show) mainSplit else topSplit
+        add(currentCenter, BorderLayout.CENTER)
+        revalidate()
+        repaint()
+        if (show) {
+            if (timelinePanel.image == null && playerService.totalMicroseconds > 0) {
+                loadVisualization()
+            }
+            SwingUtilities.invokeLater {
+                mainSplit.setDividerLocation(0.5)
+                topSplit.setDividerLocation(0.5)
+            }
+        }
     }
 
     private fun startPositionTimer() {
