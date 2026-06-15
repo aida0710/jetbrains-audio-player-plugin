@@ -23,4 +23,9 @@ class AudioPlayerSettingsTest {
     fun `default showVisualizer is true`() {
         assertTrue(AudioPlayerSettings.SettingsState().showVisualizer)
     }
+
+    @Test
+    fun `default waveformSplitChannels is false`() {
+        assertFalse(AudioPlayerSettings.SettingsState().waveformSplitChannels)
+    }
 }
