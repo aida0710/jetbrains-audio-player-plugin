@@ -83,9 +83,10 @@ object AudioAnalyzer {
                 return null
             }
 
-        val outputFile = File.createTempFile("audioplayer_", ".png")
-
+        var tempFile: File? = null
         return try {
+            val outputFile = File.createTempFile("audioplayer_", ".png")
+            tempFile = outputFile
             val cmd = commandBuilder(ffmpeg, file.absolutePath, outputFile.absolutePath, width, height)
             val process =
                 ProcessBuilder(cmd)
@@ -99,12 +100,14 @@ object AudioAnalyzer {
                 return null
             }
 
-            ImageIO.read(outputFile)
+            ImageIO.read(outputFile).also {
+                if (it == null) LOG.error("ImageIO.read returned null for ${outputFile.absolutePath}")
+            }
         } catch (e: Exception) {
             LOG.error("Failed to generate image", e)
             null
         } finally {
-            outputFile.delete()
+            tempFile?.delete()
         }
     }
 }
