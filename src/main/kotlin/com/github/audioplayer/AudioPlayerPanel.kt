@@ -477,6 +477,9 @@ class AudioPlayerPanel(
         ffmpegMissing: Boolean,
         ffprobeMissing: Boolean,
     ) {
+        if (dependencyNotificationShown) return
+        val group =
+            NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP_ID) ?: return
         val missing =
             buildList {
                 if (ffmpegMissing) add("ffmpeg")
@@ -485,15 +488,14 @@ class AudioPlayerPanel(
         val content =
             "$missing が見つかりません。再生・波形表示には ffmpeg、メタデータ表示には ffprobe が必要です。" +
                 "インストール例 — macOS: brew install ffmpeg / Ubuntu: sudo apt install ffmpeg / Windows: winget install ffmpeg"
-        NotificationGroupManager
-            .getInstance()
-            .getNotificationGroup("Audio Player")
+        group
             .createNotification("Audio Player", content, NotificationType.WARNING)
             .addAction(
                 NotificationAction.createSimple("設定を開く") {
                     ShowSettingsUtil.getInstance().showSettingsDialog(null, AudioPlayerSettingsConfigurable::class.java)
                 },
             ).notify(null)
+        dependencyNotificationShown = true
     }
 
     private fun startPositionTimer() {
@@ -535,5 +537,10 @@ class AudioPlayerPanel(
     fun dispose() {
         stopPositionTimer()
         playerService.dispose()
+    }
+
+    companion object {
+        private const val NOTIFICATION_GROUP_ID = "Audio Player"
+        private var dependencyNotificationShown = false
     }
 }
