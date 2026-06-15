@@ -1,5 +1,8 @@
 package com.github.audioplayer
 
+import com.intellij.notification.NotificationAction
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.HyperlinkLabel
@@ -366,6 +369,9 @@ class AudioPlayerPanel(
                 val ffmpegMissing = FfmpegPathUtil.findFfmpeg() == null
                 val ffprobeMissing = FfmpegPathUtil.findFfprobe() == null
                 settingsLink.isVisible = ffmpegMissing || ffprobeMissing
+                if (ffmpegMissing || ffprobeMissing) {
+                    notifyDependencyMissing(ffmpegMissing, ffprobeMissing)
+                }
 
                 updateTimeLabel(0, playerService.totalMicroseconds)
                 updateInfoTable(metadata)
@@ -465,6 +471,29 @@ class AudioPlayerPanel(
                 topSplit.setDividerLocation(0.5)
             }
         }
+    }
+
+    private fun notifyDependencyMissing(
+        ffmpegMissing: Boolean,
+        ffprobeMissing: Boolean,
+    ) {
+        val missing =
+            buildList {
+                if (ffmpegMissing) add("ffmpeg")
+                if (ffprobeMissing) add("ffprobe")
+            }.joinToString(" / ")
+        val content =
+            "$missing が見つかりません。再生・波形表示には ffmpeg、メタデータ表示には ffprobe が必要です。" +
+                "インストール例 — macOS: brew install ffmpeg / Ubuntu: sudo apt install ffmpeg / Windows: winget install ffmpeg"
+        NotificationGroupManager
+            .getInstance()
+            .getNotificationGroup("Audio Player")
+            .createNotification("Audio Player", content, NotificationType.WARNING)
+            .addAction(
+                NotificationAction.createSimple("設定を開く") {
+                    ShowSettingsUtil.getInstance().showSettingsDialog(null, AudioPlayerSettingsConfigurable::class.java)
+                },
+            ).notify(null)
     }
 
     private fun startPositionTimer() {

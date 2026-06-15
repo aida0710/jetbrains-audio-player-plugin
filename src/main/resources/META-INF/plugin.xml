@@ -75,5 +75,8 @@
             id="tools.audioplayer"
             displayName="Audio Player"
             instance="com.github.audioplayer.AudioPlayerSettingsConfigurable"/>
+        <notificationGroup
+            id="Audio Player"
+            displayType="BALLOON"/>
     </extensions>
 </idea-plugin>
