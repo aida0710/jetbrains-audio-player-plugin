@@ -55,6 +55,16 @@ class AudioPlayerPanel(
     private val analyzeSpectrumButton = JButton("Spectrum")
     private val saveImageButton = JButton("画像を保存")
 
+    // 表示窓・ズーム/スクロール
+    private var viewStartMicros = 0L
+    private var viewEndMicros = 0L
+    private val zoomInButton = JButton("＋")
+    private val zoomOutButton = JButton("−")
+    private val zoomFitButton = JButton("全体")
+    private val splitChannelsToggle = JToggleButton("L/R分離")
+    private val scrollBar = JScrollBar(JScrollBar.HORIZONTAL)
+    private var isSyncingScrollBar = false
+
     // 情報パネルのアクションボタン
     private val copyInfoButton = JButton("情報をコピー")
     private val measureLufsButton = JButton("ラウドネス測定")
@@ -252,6 +262,12 @@ class AudioPlayerPanel(
     private fun createAnalyzePanel(): JPanel {
         analyzeWaveformButton.toolTipText = "Generate waveform image"
         analyzeSpectrumButton.toolTipText = "Generate spectrum image"
+        zoomInButton.toolTipText = "拡大"
+        zoomOutButton.toolTipText = "縮小"
+        zoomFitButton.toolTipText = "全体を表示"
+        splitChannelsToggle.toolTipText = "波形をL/Rチャンネルで分離表示"
+        splitChannelsToggle.isSelected = settingsState.waveformSplitChannels
+        scrollBar.isEnabled = false
 
         val buttonPanel =
             JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
@@ -259,6 +275,10 @@ class AudioPlayerPanel(
                 add(analyzeWaveformButton)
                 add(analyzeSpectrumButton)
                 add(saveImageButton)
+                add(zoomOutButton)
+                add(zoomInButton)
+                add(zoomFitButton)
+                add(splitChannelsToggle)
             }
 
         return JPanel(BorderLayout()).apply {
@@ -266,6 +286,7 @@ class AudioPlayerPanel(
             border = JBUI.Borders.empty(8)
             add(buttonPanel, BorderLayout.NORTH)
             add(timelinePanel, BorderLayout.CENTER)
+            add(scrollBar, BorderLayout.SOUTH)
         }
     }
 
@@ -341,6 +362,47 @@ class AudioPlayerPanel(
 
         analyzeSpectrumButton.addActionListener {
             settingsState.defaultView = "spectrum"
+            loadVisualization()
+        }
+
+        zoomInButton.addActionListener {
+            val (s, e) =
+                TimelineImagePanel.zoomWindow(
+                    viewStartMicros,
+                    viewEndMicros,
+                    0.5,
+                    anchorFraction(),
+                    playerService.totalMicroseconds,
+                )
+            setWindow(s, e)
+        }
+        zoomOutButton.addActionListener {
+            val (s, e) =
+                TimelineImagePanel.zoomWindow(
+                    viewStartMicros,
+                    viewEndMicros,
+                    2.0,
+                    anchorFraction(),
+                    playerService.totalMicroseconds,
+                )
+            setWindow(s, e)
+        }
+        zoomFitButton.addActionListener {
+            setWindow(0, playerService.totalMicroseconds)
+        }
+        splitChannelsToggle.addActionListener {
+            settingsState.waveformSplitChannels = splitChannelsToggle.isSelected
+            loadVisualization()
+        }
+        scrollBar.addAdjustmentListener {
+            if (isSyncingScrollBar) return@addAdjustmentListener
+            val unit = 1000L
+            val newStart = scrollBar.value.toLong() * unit
+            val w = viewEndMicros - viewStartMicros
+            viewStartMicros = newStart.coerceIn(0, (playerService.totalMicroseconds - w).coerceAtLeast(0))
+            viewEndMicros = viewStartMicros + w
+            timelinePanel.viewStartMicros = viewStartMicros
+            timelinePanel.viewEndMicros = viewEndMicros
             loadVisualization()
         }
 
@@ -463,6 +525,11 @@ class AudioPlayerPanel(
 
             SwingUtilities.invokeLater {
                 timelinePanel.durationMicros = playerService.totalMicroseconds
+                viewStartMicros = 0
+                viewEndMicros = playerService.totalMicroseconds
+                timelinePanel.viewStartMicros = viewStartMicros
+                timelinePanel.viewEndMicros = viewEndMicros
+                syncScrollBar()
                 if (playerService.totalMicroseconds > 0) {
                     statusLabel.text = ""
                     playerService.setVolume(volumeSlider.value.toFloat())
@@ -559,22 +626,63 @@ class AudioPlayerPanel(
         updateTimeLabel(micros, total)
     }
 
+    private fun setWindow(
+        start: Long,
+        end: Long,
+    ) {
+        val total = playerService.totalMicroseconds
+        if (total <= 0) return
+        viewStartMicros = start.coerceIn(0, total)
+        viewEndMicros = end.coerceIn(viewStartMicros + 1, total)
+        timelinePanel.viewStartMicros = viewStartMicros
+        timelinePanel.viewEndMicros = viewEndMicros
+        syncScrollBar()
+        loadVisualization()
+    }
+
+    private fun anchorFraction(): Double {
+        val w = (viewEndMicros - viewStartMicros).coerceAtLeast(1)
+        val pos = playerService.currentMicroseconds
+        return if (pos in viewStartMicros..viewEndMicros) {
+            (pos - viewStartMicros).toDouble() / w
+        } else {
+            0.5
+        }
+    }
+
+    private fun syncScrollBar() {
+        val total = playerService.totalMicroseconds
+        if (total <= 0) return
+        val unit = 1000
+        val extent = ((viewEndMicros - viewStartMicros) / unit).toInt().coerceAtLeast(1)
+        val max = (total / unit).toInt().coerceAtLeast(1)
+        val value = (viewStartMicros / unit).toInt()
+        isSyncingScrollBar = true
+        scrollBar.setValues(value, extent, 0, max)
+        scrollBar.isEnabled = extent < max
+        isSyncingScrollBar = false
+    }
+
     private fun loadVisualization() {
         val requestId = ++visualizationRequestId
         val view = settingsState.defaultView
         val isSpectrum = view == "spectrum"
+        val total = playerService.totalMicroseconds
+        val full = viewStartMicros <= 0 && (viewEndMicros >= total || viewEndMicros <= 0)
+        val startSec = if (full) null else viewStartMicros / 1_000_000.0
+        val lenSec = if (full) null else (viewEndMicros - viewStartMicros) / 1_000_000.0
+        val split = settingsState.waveformSplitChannels
         timelinePanel.image = null
         timelinePanel.placeholderText = if (isSpectrum) "Generating spectrum..." else "Generating waveform..."
         Thread {
             val img: BufferedImage? =
                 if (isSpectrum) {
-                    AudioAnalyzer.generateSpectrumImage(File(file.path), 800, 200)
+                    AudioAnalyzer.generateSpectrumImage(File(file.path), 800, 200, startSec, lenSec)
                 } else {
-                    AudioAnalyzer.generateWaveformImage(File(file.path), 800, 200)
+                    AudioAnalyzer.generateWaveformImage(File(file.path), 800, 200, startSec, lenSec, split)
                 }
             SwingUtilities.invokeLater {
                 if (requestId != visualizationRequestId) return@invokeLater
-                timelinePanel.durationMicros = playerService.totalMicroseconds
                 if (img != null) {
                     timelinePanel.placeholderText = null
                     timelinePanel.image = img
