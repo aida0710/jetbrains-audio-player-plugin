@@ -16,6 +16,9 @@ data class AudioMetadata(
 
 object AudioProbe {
     private val LOG = Logger.getInstance(AudioProbe::class.java)
+    private val FORMAT_BLOCK_REGEX = """"format"\s*:\s*\{""".toRegex()
+    private val TAGS_BLOCK_REGEX = """"tags"\s*:\s*\{([^}]*)\}""".toRegex()
+    private val TAG_KV_REGEX = """"([^"]+)"\s*:\s*"([^"]*)"""".toRegex()
 
     fun probe(file: File): AudioMetadata? {
         if (!file.exists()) return null
@@ -125,8 +128,8 @@ object AudioProbe {
     ): String = "$channels ch ($layout)"
 
     fun parseTags(json: String): Map<String, String> {
-        val block = """"tags"\s*:\s*\{([^}]*)\}""".toRegex().find(json)?.groupValues?.get(1) ?: return emptyMap()
-        val pair = """"([^"]+)"\s*:\s*"([^"]*)"""".toRegex()
-        return pair.findAll(block).associate { it.groupValues[1].lowercase() to it.groupValues[2] }
+        val formatStart = FORMAT_BLOCK_REGEX.find(json)?.range?.first ?: return emptyMap()
+        val tagsBlock = TAGS_BLOCK_REGEX.find(json, formatStart)?.groupValues?.get(1) ?: return emptyMap()
+        return TAG_KV_REGEX.findAll(tagsBlock).associate { it.groupValues[1].lowercase() to it.groupValues[2] }
     }
 }

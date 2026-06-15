@@ -3,6 +3,7 @@ package com.github.audioplayer
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -23,6 +24,7 @@ class AudioPlayerPanel(
     private val file: VirtualFile,
 ) : JPanel(BorderLayout()) {
     private val playerService = AudioPlayerService()
+    private val log = Logger.getInstance(AudioPlayerPanel::class.java)
 
     private val timelinePanel = TimelineImagePanel { micros -> seekToMicros(micros) }
 
@@ -411,6 +413,22 @@ class AudioPlayerPanel(
                 notifyUser("保存する画像がありません。先に波形/スペクトラムを生成してください。", NotificationType.WARNING)
                 return@addActionListener
             }
+            val snapshot =
+                java.awt.image.BufferedImage(
+                    img.width,
+                    img.height,
+                    if (img.type ==
+                        java.awt.image.BufferedImage.TYPE_CUSTOM
+                    ) {
+                        java.awt.image.BufferedImage.TYPE_INT_ARGB
+                    } else {
+                        img.type
+                    },
+                )
+            snapshot.createGraphics().apply {
+                drawImage(img, 0, 0, null)
+                dispose()
+            }
             val chooser = JFileChooser()
             chooser.selectedFile =
                 File(defaultImageFileName(File(file.path).nameWithoutExtension, settingsState.defaultView))
@@ -419,8 +437,9 @@ class AudioPlayerPanel(
             Thread {
                 val ok =
                     try {
-                        ImageIO.write(img, "png", out)
+                        ImageIO.write(snapshot, "png", out)
                     } catch (e: Exception) {
+                        log.error("Failed to save image", e)
                         false
                     }
                 SwingUtilities.invokeLater {
