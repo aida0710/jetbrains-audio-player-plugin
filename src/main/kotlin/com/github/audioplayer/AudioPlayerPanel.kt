@@ -7,6 +7,7 @@ import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.*
 import java.awt.event.KeyEvent
+import java.awt.image.BufferedImage
 import java.io.File
 import javax.swing.*
 import javax.swing.event.ChangeEvent
@@ -16,6 +17,12 @@ class AudioPlayerPanel(
     private val file: VirtualFile,
 ) : JPanel(BorderLayout()) {
     private val playerService = AudioPlayerService()
+
+    private val timelinePanel = TimelineImagePanel { micros -> seekToMicros(micros) }
+
+    private lateinit var topSplit: JSplitPane
+    private lateinit var mainSplit: JSplitPane
+    private lateinit var currentCenter: JComponent
 
     private val playPauseButton = JButton("\u25B6")
     private val stopButton = JButton("\u23F9")
@@ -37,7 +44,6 @@ class AudioPlayerPanel(
     // 解析パネルのコンポーネント
     private val analyzeWaveformButton = JButton("Waveform")
     private val analyzeSpectrumButton = JButton("Spectrum")
-    private val imageLabel = JLabel("", SwingConstants.CENTER)
 
     // 情報パネルのテーブル
     private val infoTableModel =
@@ -52,52 +58,62 @@ class AudioPlayerPanel(
     private var isSeeking = false
     private var positionTimer: Timer? = null
 
+    private val settingsState
+        get() = AudioPlayerSettings.instance.state
+
     init {
         border = JBUI.Borders.empty(8)
         background = JBColor.background()
+        volumeSlider.value = settingsState.lastVolume
+        volumeValueLabel.text = "${settingsState.lastVolume}%"
+        loopButton.isSelected = settingsState.lastLooping
         setupUI()
         setupListeners()
         loadFile()
     }
 
     private fun setupUI() {
-        // 左上: 情報パネル
         val infoPanel = createInfoPanel()
-
-        // 右上: コントロールパネル
         val controlsPanel = createControlsPanel()
 
-        // 上部: 左右分割 (情報 | コントロール)
-        val topSplit =
+        infoPanel.minimumSize = Dimension(0, 0)
+        controlsPanel.minimumSize = Dimension(0, 0)
+
+        topSplit =
             JSplitPane(JSplitPane.HORIZONTAL_SPLIT, infoPanel, controlsPanel).apply {
                 resizeWeight = 0.5
                 border = null
                 isOpaque = false
+                minimumSize = Dimension(0, 0)
             }
 
-        // 下部: 解析パネル
         val analyzePanel = createAnalyzePanel()
+        analyzePanel.minimumSize = Dimension(0, 0)
 
-        // メイン: 上下分割
-        val mainSplit =
+        mainSplit =
             JSplitPane(JSplitPane.VERTICAL_SPLIT, topSplit, analyzePanel).apply {
                 resizeWeight = 0.5
                 border = null
                 isOpaque = false
+                minimumSize = Dimension(0, 0)
             }
 
-        add(mainSplit, BorderLayout.CENTER)
+        currentCenter = if (settingsState.showVisualizer) mainSplit else topSplit
+        add(currentCenter, BorderLayout.CENTER)
 
-        // レイアウト確定後に分割位置を50%に設定
         addComponentListener(
             object : java.awt.event.ComponentAdapter() {
                 override fun componentResized(e: java.awt.event.ComponentEvent?) {
-                    mainSplit.setDividerLocation(0.5)
-                    topSplit.setDividerLocation(0.5)
+                    if (currentCenter === mainSplit) {
+                        mainSplit.setDividerLocation(0.5)
+                        topSplit.setDividerLocation(0.5)
+                    }
                 }
             },
         )
     }
+
+    override fun getMinimumSize(): Dimension = Dimension(100, 100)
 
     private fun createInfoPanel(): JPanel {
         infoTable.apply {
@@ -220,16 +236,11 @@ class AudioPlayerPanel(
                 add(analyzeSpectrumButton)
             }
 
-        imageLabel.apply {
-            horizontalAlignment = SwingConstants.CENTER
-            verticalAlignment = SwingConstants.CENTER
-        }
-
         return JPanel(BorderLayout()).apply {
             isOpaque = false
             border = JBUI.Borders.empty(8)
             add(buttonPanel, BorderLayout.NORTH)
-            add(imageLabel, BorderLayout.CENTER)
+            add(timelinePanel, BorderLayout.CENTER)
         }
     }
 
@@ -248,6 +259,7 @@ class AudioPlayerPanel(
 
         loopButton.addActionListener {
             playerService.setLooping(loopButton.isSelected)
+            settingsState.lastLooping = loopButton.isSelected
         }
 
         seekSlider.addChangeListener { _: ChangeEvent ->
@@ -267,6 +279,7 @@ class AudioPlayerPanel(
         volumeSlider.addChangeListener {
             volumeValueLabel.text = "${volumeSlider.value}%"
             playerService.setVolume(volumeSlider.value.toFloat())
+            settingsState.lastVolume = volumeSlider.value
         }
 
         playerService.onStateChanged = { state ->
@@ -297,39 +310,13 @@ class AudioPlayerPanel(
         }
 
         analyzeWaveformButton.addActionListener {
-            analyzeWaveformButton.isEnabled = false
-            imageLabel.text = "Generating waveform..."
-            imageLabel.icon = null
-            Thread {
-                val icon = AudioAnalyzer.generateWaveform(File(file.path), 800, 200)
-                SwingUtilities.invokeLater {
-                    if (icon != null) {
-                        imageLabel.text = null
-                        imageLabel.icon = icon
-                    } else {
-                        imageLabel.text = "Failed to generate waveform (ffmpeg required)"
-                    }
-                    analyzeWaveformButton.isEnabled = true
-                }
-            }.start()
+            settingsState.defaultView = "waveform"
+            loadVisualization()
         }
 
         analyzeSpectrumButton.addActionListener {
-            analyzeSpectrumButton.isEnabled = false
-            imageLabel.text = "Generating spectrum..."
-            imageLabel.icon = null
-            Thread {
-                val icon = AudioAnalyzer.generateSpectrum(File(file.path), 800, 200)
-                SwingUtilities.invokeLater {
-                    if (icon != null) {
-                        imageLabel.text = null
-                        imageLabel.icon = icon
-                    } else {
-                        imageLabel.text = "Failed to generate spectrum (ffmpeg required)"
-                    }
-                    analyzeSpectrumButton.isEnabled = true
-                }
-            }.start()
+            settingsState.defaultView = "spectrum"
+            loadVisualization()
         }
 
         // Spaceキーで再生/一時停止を切り替え
@@ -346,30 +333,28 @@ class AudioPlayerPanel(
                 }
             },
         )
+
+        registerSeekKey(KeyEvent.VK_LEFT, "seekBackward") { seekRelative(-5_000_000) }
+        registerSeekKey(KeyEvent.VK_RIGHT, "seekForward") { seekRelative(5_000_000) }
+        registerSeekKey(KeyEvent.VK_HOME, "seekStart") { seekToMicros(0) }
     }
 
     private fun loadFile() {
         statusLabel.text = "Loading..."
-        imageLabel.text = "Generating spectrum..."
         Thread {
-            // メタデータ取得
             val metadata = AudioProbe.probe(File(file.path))
-
-            // 音声読み込み
             playerService.load(File(file.path))
 
-            // スペクトラムを自動生成
-            val spectrumIcon = AudioAnalyzer.generateSpectrum(File(file.path), 800, 200)
-
             SwingUtilities.invokeLater {
+                timelinePanel.durationMicros = playerService.totalMicroseconds
                 if (playerService.totalMicroseconds > 0) {
                     statusLabel.text = ""
                     playerService.setVolume(volumeSlider.value.toFloat())
+                    playerService.setLooping(loopButton.isSelected)
                 } else if (statusLabel.text == "Loading...") {
                     statusLabel.text = "Failed to load audio file"
                 }
 
-                // ffmpeg/ffprobe が見つからない場合は設定リンクを表示
                 val ffmpegMissing = FfmpegPathUtil.findFfmpeg() == null
                 val ffprobeMissing = FfmpegPathUtil.findFfprobe() == null
                 settingsLink.isVisible = ffmpegMissing || ffprobeMissing
@@ -377,11 +362,8 @@ class AudioPlayerPanel(
                 updateTimeLabel(0, playerService.totalMicroseconds)
                 updateInfoTable(metadata)
 
-                if (spectrumIcon != null) {
-                    imageLabel.text = null
-                    imageLabel.icon = spectrumIcon
-                } else {
-                    imageLabel.text = ""
+                if (settingsState.showVisualizer) {
+                    loadVisualization()
                 }
             }
         }.start()
@@ -406,6 +388,59 @@ class AudioPlayerPanel(
         }
     }
 
+    private fun registerSeekKey(
+        keyCode: Int,
+        actionKey: String,
+        action: () -> Unit,
+    ) {
+        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(keyCode, 0), actionKey)
+        actionMap.put(
+            actionKey,
+            object : AbstractAction() {
+                override fun actionPerformed(e: java.awt.event.ActionEvent?) = action()
+            },
+        )
+    }
+
+    private fun seekRelative(deltaMicros: Long) {
+        val total = playerService.totalMicroseconds
+        if (total <= 0) return
+        seekToMicros(AudioPlayerService.computeSeekTarget(playerService.currentMicroseconds, deltaMicros, total))
+    }
+
+    private fun seekToMicros(micros: Long) {
+        val total = playerService.totalMicroseconds
+        if (total <= 0) return
+        playerService.seek(micros)
+        seekSlider.value = ((micros * 1000) / total).toInt()
+        timelinePanel.positionMicros = micros
+        updateTimeLabel(micros, total)
+    }
+
+    private fun loadVisualization() {
+        val view = settingsState.defaultView
+        val isSpectrum = view == "spectrum"
+        timelinePanel.image = null
+        timelinePanel.placeholderText = if (isSpectrum) "Generating spectrum..." else "Generating waveform..."
+        Thread {
+            val img: BufferedImage? =
+                if (isSpectrum) {
+                    AudioAnalyzer.generateSpectrumImage(File(file.path), 800, 200)
+                } else {
+                    AudioAnalyzer.generateWaveformImage(File(file.path), 800, 200)
+                }
+            SwingUtilities.invokeLater {
+                timelinePanel.durationMicros = playerService.totalMicroseconds
+                if (img != null) {
+                    timelinePanel.placeholderText = null
+                    timelinePanel.image = img
+                } else {
+                    timelinePanel.placeholderText = "Failed to generate (ffmpeg required)"
+                }
+            }
+        }.start()
+    }
+
     private fun startPositionTimer() {
         stopPositionTimer()
         positionTimer =
@@ -415,6 +450,7 @@ class AudioPlayerPanel(
                     val total = playerService.totalMicroseconds
                     if (total > 0) {
                         seekSlider.value = ((current * 1000) / total).toInt()
+                        timelinePanel.positionMicros = current
                     }
                     updateTimeLabel(current, total)
                 }
