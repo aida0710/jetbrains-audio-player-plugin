@@ -53,6 +53,7 @@ class AudioPlayerPanel(
 
     // 情報パネルのアクションボタン
     private val copyInfoButton = JButton("情報をコピー")
+    private val measureLufsButton = JButton("ラウドネス測定")
     private val infoActionsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { isOpaque = false }
 
     // 情報パネルのテーブル
@@ -141,6 +142,7 @@ class AudioPlayerPanel(
         infoTableModel.addRow(arrayOf("Status", "Loading..."))
 
         infoActionsPanel.add(copyInfoButton)
+        infoActionsPanel.add(measureLufsButton)
 
         return JPanel(BorderLayout()).apply {
             isOpaque = false
@@ -367,6 +369,18 @@ class AudioPlayerPanel(
                 }
             CopyPasteManager.getInstance().setContents(StringSelection(infoRowsToText(rows)))
         }
+
+        measureLufsButton.addActionListener {
+            measureLufsButton.isEnabled = false
+            setInfoRow("Loudness", "Measuring...")
+            Thread {
+                val result = LoudnessAnalyzer.measure(File(file.path))
+                SwingUtilities.invokeLater {
+                    setInfoRow("Loudness", result ?: "測定不可 (ffmpeg required)")
+                    measureLufsButton.isEnabled = true
+                }
+            }.start()
+        }
     }
 
     private fun loadFile() {
@@ -432,6 +446,19 @@ class AudioPlayerPanel(
         } else {
             infoTableModel.addRow(arrayOf("Info", "Metadata unavailable (ffprobe required)"))
         }
+    }
+
+    private fun setInfoRow(
+        label: String,
+        value: String,
+    ) {
+        for (i in 0 until infoTableModel.rowCount) {
+            if (infoTableModel.getValueAt(i, 0) == label) {
+                infoTableModel.setValueAt(value, i, 1)
+                return
+            }
+        }
+        infoTableModel.addRow(arrayOf(label, value))
     }
 
     private fun registerSeekKey(
