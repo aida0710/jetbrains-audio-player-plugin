@@ -61,6 +61,7 @@ class AudioPlayerPanel(
 
     private var isSeeking = false
     private var positionTimer: Timer? = null
+    private var visualizationRequestId = 0
 
     private val settingsState
         get() = AudioPlayerSettings.instance.state
@@ -432,6 +433,7 @@ class AudioPlayerPanel(
     }
 
     private fun loadVisualization() {
+        val requestId = ++visualizationRequestId
         val view = settingsState.defaultView
         val isSpectrum = view == "spectrum"
         timelinePanel.image = null
@@ -444,6 +446,7 @@ class AudioPlayerPanel(
                     AudioAnalyzer.generateWaveformImage(File(file.path), 800, 200)
                 }
             SwingUtilities.invokeLater {
+                if (requestId != visualizationRequestId) return@invokeLater
                 timelinePanel.durationMicros = playerService.totalMicroseconds
                 if (img != null) {
                     timelinePanel.placeholderText = null
