@@ -403,7 +403,9 @@ class AudioPlayerPanel(
             viewEndMicros = viewStartMicros + w
             timelinePanel.viewStartMicros = viewStartMicros
             timelinePanel.viewEndMicros = viewEndMicros
-            loadVisualization()
+            if (!scrollBar.valueIsAdjusting) {
+                loadVisualization()
+            }
         }
 
         // Spaceキーで再生/一時停止を切り替え
