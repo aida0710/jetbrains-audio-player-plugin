@@ -15,6 +15,8 @@ import java.awt.datatransfer.StringSelection
 import java.awt.event.KeyEvent
 import java.awt.image.BufferedImage
 import java.io.File
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.imageio.ImageIO
 import javax.swing.*
 import javax.swing.event.ChangeEvent
@@ -86,6 +88,10 @@ class AudioPlayerPanel(
     private var isSeeking = false
     private var positionTimer: Timer? = null
     private var visualizationRequestId = 0
+
+    private var speedSeq = 0
+    private val levelExecutor = Executors.newSingleThreadExecutor()
+    private val levelBusy = AtomicBoolean(false)
 
     private val settingsState
         get() = AudioPlayerSettings.instance.state
@@ -344,14 +350,10 @@ class AudioPlayerPanel(
         }
 
         speedCombo.addActionListener {
-            val sel = (speedCombo.selectedItem as? String) ?: return@addActionListener
+            val sel = speedCombo.selectedItem as? String ?: return@addActionListener
             val newSpeed = sel.removeSuffix("x").toFloat()
             settingsState.lastSpeed = newSpeed
-            speedCombo.isEnabled = false
-            Thread {
-                playerService.setSpeed(newSpeed)
-                SwingUtilities.invokeLater { speedCombo.isEnabled = true }
-            }.start()
+            requestSpeedChange(newSpeed)
         }
 
         playerService.onStateChanged = { state ->
@@ -567,8 +569,7 @@ class AudioPlayerPanel(
                     playerService.setVolume(volumeSlider.value.toFloat())
                     playerService.setLooping(loopButton.isSelected)
                     if (settingsState.lastSpeed != 1.0f) {
-                        val s = settingsState.lastSpeed
-                        Thread { playerService.setSpeed(s) }.start()
+                        requestSpeedChange(settingsState.lastSpeed)
                     }
                 } else if (statusLabel.text == "Loading...") {
                     statusLabel.text = "Failed to load audio file"
@@ -699,6 +700,24 @@ class AudioPlayerPanel(
         isSyncingScrollBar = false
     }
 
+    private fun requestSpeedChange(newSpeed: Float) {
+        val seq = ++speedSeq
+        speedCombo.isEnabled = false
+        Thread {
+            val wav = playerService.prepareSpeed(newSpeed)
+            SwingUtilities.invokeLater {
+                if (seq == speedSeq) {
+                    if (wav != null) {
+                        playerService.applySpeed(newSpeed, wav)
+                    } else {
+                        notifyUser("速度変更に失敗しました (ffmpeg required)", NotificationType.WARNING)
+                    }
+                    speedCombo.isEnabled = true
+                }
+            }
+        }.start()
+    }
+
     private fun loadVisualization() {
         val requestId = ++visualizationRequestId
         val view = settingsState.defaultView
@@ -795,13 +814,20 @@ class AudioPlayerPanel(
                         timelinePanel.positionMicros = current
                     }
                     updateTimeLabel(current, total)
-                    val level = playerService.currentLevel()
-                    if (level != null) {
-                        levelMeter.peak = level.first
-                        levelMeter.rms = level.second
-                    } else {
-                        levelMeter.peak = 0f
-                        levelMeter.rms = 0f
+                    if (levelBusy.compareAndSet(false, true)) {
+                        levelExecutor.submit {
+                            val lvl = playerService.currentLevel()
+                            SwingUtilities.invokeLater {
+                                if (lvl != null) {
+                                    levelMeter.peak = lvl.first
+                                    levelMeter.rms = lvl.second
+                                } else {
+                                    levelMeter.peak = 0f
+                                    levelMeter.rms = 0f
+                                }
+                                levelBusy.set(false)
+                            }
+                        }
                     }
                 }
             }.apply { start() }
@@ -829,6 +855,7 @@ class AudioPlayerPanel(
 
     fun dispose() {
         stopPositionTimer()
+        levelExecutor.shutdownNow()
         playerService.dispose()
     }
 

@@ -17,7 +17,8 @@ class AudioPlayerService {
     private var wavFile: File? = null
     private var isLooping = false
 
-    private var speed: Float = 1.0f
+    var speed: Float = 1.0f
+        private set
     private var renderedWav: File? = null
     private var activeWav: File? = null
     private var volumePercent: Float = 80f
@@ -32,7 +33,12 @@ class AudioPlayerService {
         get() = originalTotalMicros
 
     val currentMicroseconds: Long
-        get() = renderedToOriginalMicros(clip?.microsecondPosition ?: 0, speed)
+        get() =
+            try {
+                renderedToOriginalMicros(clip?.microsecondPosition ?: 0, speed)
+            } catch (e: Exception) {
+                0
+            }
 
     fun load(sourceFile: File) {
         stop()
@@ -146,46 +152,48 @@ class AudioPlayerService {
         }
     }
 
-    fun setSpeed(newSpeed: Float) {
-        val base = wavFile ?: return
+    fun prepareSpeed(newSpeed: Float): File? {
+        val base = wavFile ?: return null
+        if (newSpeed == 1.0f) return base
+        val out = File.createTempFile("audioplayer_speed_", ".wav")
+        out.deleteOnExit()
+        return if (AudioConverter.renderAtempo(base, out, newSpeed)) {
+            out
+        } else {
+            out.delete()
+            null
+        }
+    }
+
+    // MUST be called on the EDT (mutates clip/state)
+    fun applySpeed(
+        newSpeed: Float,
+        targetWav: File,
+    ) {
         if (newSpeed == speed) return
+        val base = wavFile ?: return
         val wasPlaying = state == PlaybackState.PLAYING
+        val wasStopped = state == PlaybackState.STOPPED
         val originalPos = currentMicroseconds
-
-        val targetWav: File? =
-            if (newSpeed == 1.0f) {
-                base
-            } else {
-                val out = File.createTempFile("audioplayer_speed_", ".wav")
-                if (AudioConverter.renderAtempo(base, out, newSpeed)) {
-                    out
-                } else {
-                    out.delete()
-                    null
-                }
-            }
-        if (targetWav == null) {
-            onError?.invoke("速度変更に失敗しました (ffmpeg required)")
-            return
-        }
-
-        if (state == PlaybackState.PLAYING) {
-            clip?.stop()
-        }
+        if (wasPlaying) clip?.stop()
         renderedWav?.let { if (it != base) it.delete() }
         renderedWav = if (newSpeed == 1.0f) null else targetWav
         speed = newSpeed
-
         if (!openClip(targetWav)) return
         setVolume(volumePercent)
         val rendered = originalToRenderedMicros(originalPos, newSpeed).coerceIn(0, clip?.microsecondLength ?: 0)
         clip?.microsecondPosition = rendered
         pausePosition = rendered
-        if (wasPlaying) {
-            play()
-        } else {
-            state = PlaybackState.PAUSED
-            onStateChanged?.invoke(state)
+        when {
+            wasPlaying -> play()
+            wasStopped -> {
+                state = PlaybackState.STOPPED
+                onStateChanged?.invoke(state)
+            }
+            else -> {
+                state = PlaybackState.PAUSED
+                onStateChanged?.invoke(state)
+            }
         }
     }
 
