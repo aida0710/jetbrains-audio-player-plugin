@@ -79,4 +79,14 @@
             id="Audio Player"
             displayType="BALLOON"/>
     </extensions>
+
+    <actions>
+        <action
+            id="com.github.audioplayer.OpenInAudioPlayer"
+            class="com.github.audioplayer.OpenInAudioPlayerAction"
+            text="Audio Player で開く"
+            description="選択した音声ファイルを Audio Player で開く">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
