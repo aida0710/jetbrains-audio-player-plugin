@@ -38,6 +38,8 @@ class AudioPlayerPanel(
     private val visualizerToggle = JCheckBox("ビジュアライザを表示", true)
     private val seekSlider = JSlider(0, 1000, 0)
     private val volumeSlider = JSlider(0, 100, 80)
+    private val speedCombo = JComboBox(arrayOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x"))
+    private val levelMeter = LevelMeterBar()
     private val timeLabel = JLabel("00:00 / 00:00")
     private val volumeValueLabel = JLabel("80%")
     private val fileNameLabel = JLabel(file.name)
@@ -94,6 +96,10 @@ class AudioPlayerPanel(
         volumeSlider.value = settingsState.lastVolume
         volumeValueLabel.text = "${settingsState.lastVolume}%"
         loopButton.isSelected = settingsState.lastLooping
+        speedCombo.selectedItem =
+            (0 until speedCombo.itemCount)
+                .map { speedCombo.getItemAt(it) }
+                .firstOrNull { it.removeSuffix("x").toFloat() == settingsState.lastSpeed } ?: "1.0x"
         setupUI()
         setupListeners()
         loadFile()
@@ -232,6 +238,14 @@ class AudioPlayerPanel(
                 border = JBUI.Borders.emptyTop(4)
             }
 
+        val speedPanel =
+            JPanel(FlowLayout(FlowLayout.CENTER, 4, 0)).apply {
+                isOpaque = false
+                add(JLabel("Speed"))
+                add(speedCombo)
+                add(levelMeter)
+            }
+
         statusLabel.apply {
             horizontalAlignment = SwingConstants.CENTER
             foreground = JBColor.RED
@@ -245,6 +259,7 @@ class AudioPlayerPanel(
                 add(seekPanel)
                 add(buttonsPanel)
                 add(volumePanel)
+                add(speedPanel)
                 add(Box.createVerticalStrut(4))
                 add(statusLabel)
                 add(settingsLink)
@@ -328,6 +343,17 @@ class AudioPlayerPanel(
             settingsState.lastVolume = volumeSlider.value
         }
 
+        speedCombo.addActionListener {
+            val sel = (speedCombo.selectedItem as? String) ?: return@addActionListener
+            val newSpeed = sel.removeSuffix("x").toFloat()
+            settingsState.lastSpeed = newSpeed
+            speedCombo.isEnabled = false
+            Thread {
+                playerService.setSpeed(newSpeed)
+                SwingUtilities.invokeLater { speedCombo.isEnabled = true }
+            }.start()
+        }
+
         playerService.onStateChanged = { state ->
             SwingUtilities.invokeLater {
                 when (state) {
@@ -338,12 +364,16 @@ class AudioPlayerPanel(
                     AudioPlayerService.PlaybackState.PAUSED -> {
                         playPauseButton.text = "\u25B6"
                         stopPositionTimer()
+                        levelMeter.peak = 0f
+                        levelMeter.rms = 0f
                     }
                     AudioPlayerService.PlaybackState.STOPPED -> {
                         playPauseButton.text = "\u25B6"
                         seekSlider.value = 0
                         stopPositionTimer()
                         updateTimeLabel(0, playerService.totalMicroseconds)
+                        levelMeter.peak = 0f
+                        levelMeter.rms = 0f
                     }
                 }
             }
@@ -536,6 +566,10 @@ class AudioPlayerPanel(
                     statusLabel.text = ""
                     playerService.setVolume(volumeSlider.value.toFloat())
                     playerService.setLooping(loopButton.isSelected)
+                    if (settingsState.lastSpeed != 1.0f) {
+                        val s = settingsState.lastSpeed
+                        Thread { playerService.setSpeed(s) }.start()
+                    }
                 } else if (statusLabel.text == "Loading...") {
                     statusLabel.text = "Failed to load audio file"
                 }
@@ -761,6 +795,14 @@ class AudioPlayerPanel(
                         timelinePanel.positionMicros = current
                     }
                     updateTimeLabel(current, total)
+                    val level = playerService.currentLevel()
+                    if (level != null) {
+                        levelMeter.peak = level.first
+                        levelMeter.rms = level.second
+                    } else {
+                        levelMeter.peak = 0f
+                        levelMeter.rms = 0f
+                    }
                 }
             }.apply { start() }
     }
