@@ -43,6 +43,7 @@ class AudioPlayerPanel(
     private lateinit var topSplit: JSplitPane
     private lateinit var mainSplit: JSplitPane
     private lateinit var currentCenter: JComponent
+    private var dividersInitialized = false
 
     private val playPauseButton = JButton("\u25B6")
     private val stopButton = JButton("\u23F9")
@@ -202,12 +203,15 @@ class AudioPlayerPanel(
         currentCenter = if (settingsState.showVisualizer) mainSplit else topSplit
         add(currentCenter, BorderLayout.CENTER)
 
+        // 初回レイアウト確定時に一度だけ 50/50 へ。以降は resizeWeight に任せ、
+        // ユーザーがドラッグした分割位置を維持できるようにする（毎回 0.5 に戻さない）。
         addComponentListener(
             object : java.awt.event.ComponentAdapter() {
                 override fun componentResized(e: java.awt.event.ComponentEvent?) {
-                    if (currentCenter === mainSplit) {
+                    if (currentCenter === mainSplit && !dividersInitialized && width > 0 && height > 0) {
                         mainSplit.setDividerLocation(0.5)
                         topSplit.setDividerLocation(0.5)
+                        dividersInitialized = true
                     }
                 }
             },
@@ -866,7 +870,14 @@ class AudioPlayerPanel(
     private fun applyVisualizerVisibility(show: Boolean) {
         settingsState.showVisualizer = show
         remove(currentCenter)
-        currentCenter = if (show) mainSplit else topSplit
+        if (show) {
+            // OFF の間に topSplit をパネル直下へ移していた場合、mainSplit から外れているため再アタッチする。
+            // （Swing は1コンポーネント1親。これを怠ると mainSplit の上半分が空になり下半分が全面占有してしまう）
+            mainSplit.topComponent = topSplit
+            currentCenter = mainSplit
+        } else {
+            currentCenter = topSplit
+        }
         add(currentCenter, BorderLayout.CENTER)
         revalidate()
         repaint()
@@ -877,6 +888,7 @@ class AudioPlayerPanel(
             SwingUtilities.invokeLater {
                 mainSplit.setDividerLocation(0.5)
                 topSplit.setDividerLocation(0.5)
+                dividersInitialized = true
             }
         }
     }
