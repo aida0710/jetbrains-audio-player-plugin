@@ -85,6 +85,14 @@ class AudioPlayerPanel(
         }
     private val infoTable = JTable(infoTableModel)
 
+    private var loopAMicros = -1L
+    private var loopBMicros = -1L
+    private var abLoopEnabled = false
+    private val setAButton = JButton("A")
+    private val setBButton = JButton("B")
+    private val abLoopToggle = JToggleButton("A-B")
+    private val abClearButton = JButton("ABクリア")
+
     private var isSeeking = false
     private var positionTimer: Timer? = null
     private var visualizationRequestId = 0
@@ -289,6 +297,10 @@ class AudioPlayerPanel(
         splitChannelsToggle.toolTipText = "波形をL/Rチャンネルで分離表示"
         splitChannelsToggle.isSelected = settingsState.waveformSplitChannels
         scrollBar.isEnabled = false
+        setAButton.toolTipText = "区間の開始(A)を現在位置に"
+        setBButton.toolTipText = "区間の終了(B)を現在位置に"
+        abLoopToggle.toolTipText = "A-B区間をリピート"
+        abClearButton.toolTipText = "A-Bをクリア"
 
         val buttonPanel =
             JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
@@ -300,6 +312,10 @@ class AudioPlayerPanel(
                 add(zoomInButton)
                 add(zoomFitButton)
                 add(splitChannelsToggle)
+                add(setAButton)
+                add(setBButton)
+                add(abLoopToggle)
+                add(abClearButton)
             }
 
         return JPanel(BorderLayout()).apply {
@@ -503,6 +519,30 @@ class AudioPlayerPanel(
             }.start()
         }
 
+        setAButton.addActionListener {
+            loopAMicros = playerService.currentMicroseconds
+            if (loopBMicros in 0..loopAMicros) loopBMicros = -1
+            applyMarkers()
+        }
+        setBButton.addActionListener {
+            val pos = playerService.currentMicroseconds
+            if (loopAMicros in 0 until pos) {
+                loopBMicros = pos
+                applyMarkers()
+            }
+        }
+        abLoopToggle.addActionListener {
+            abLoopEnabled = abLoopToggle.isSelected && loopAMicros >= 0 && loopBMicros > loopAMicros
+            abLoopToggle.isSelected = abLoopEnabled
+        }
+        abClearButton.addActionListener {
+            loopAMicros = -1
+            loopBMicros = -1
+            abLoopEnabled = false
+            abLoopToggle.isSelected = false
+            applyMarkers()
+        }
+
         saveImageButton.addActionListener {
             val img = timelinePanel.image
             if (img == null) {
@@ -663,6 +703,11 @@ class AudioPlayerPanel(
         updateTimeLabel(micros, total)
     }
 
+    private fun applyMarkers() {
+        timelinePanel.aMarkerMicros = loopAMicros
+        timelinePanel.bMarkerMicros = loopBMicros
+    }
+
     private fun setWindow(
         start: Long,
         end: Long,
@@ -809,6 +854,9 @@ class AudioPlayerPanel(
                 if (!isSeeking) {
                     val current = playerService.currentMicroseconds
                     val total = playerService.totalMicroseconds
+                    if (abLoopEnabled && AudioPlayerService.shouldLoopBack(current, loopAMicros, loopBMicros)) {
+                        playerService.seek(loopAMicros)
+                    }
                     if (total > 0) {
                         seekSlider.value = ((current * 1000) / total).toInt()
                         timelinePanel.positionMicros = current
