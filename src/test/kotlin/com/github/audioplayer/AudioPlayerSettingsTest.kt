@@ -28,4 +28,9 @@ class AudioPlayerSettingsTest {
     fun `default waveformSplitChannels is false`() {
         assertFalse(AudioPlayerSettings.SettingsState().waveformSplitChannels)
     }
+
+    @Test
+    fun `default lastSpeed is 1`() {
+        assertEquals(1.0f, AudioPlayerSettings.SettingsState().lastSpeed, 0.0f)
+    }
 }

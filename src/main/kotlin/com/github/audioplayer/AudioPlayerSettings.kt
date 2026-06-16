@@ -18,6 +18,7 @@ class AudioPlayerSettings : PersistentStateComponent<AudioPlayerSettings.Setting
         var defaultView: String = "waveform",
         var showVisualizer: Boolean = true,
         var waveformSplitChannels: Boolean = false,
+        var lastSpeed: Float = 1.0f,
     )
 
     private var myState = SettingsState()
