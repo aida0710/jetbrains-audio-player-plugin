@@ -9,9 +9,10 @@ import javax.swing.JComponent
 
 class AudioFileEditor(
     private val file: VirtualFile,
+    private val project: com.intellij.openapi.project.Project,
 ) : UserDataHolderBase(),
     FileEditor {
-    private val panel = AudioPlayerPanel(file)
+    private val panel = AudioPlayerPanel(file, project)
 
     override fun getComponent(): JComponent = panel
 

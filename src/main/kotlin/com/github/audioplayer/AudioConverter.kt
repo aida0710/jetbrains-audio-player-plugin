@@ -23,6 +23,8 @@ object AudioConverter {
 
     fun isSupportedExtension(extension: String?): Boolean = extension?.lowercase() in SUPPORTED_EXTENSIONS
 
+    fun firstAudioFile(files: List<File>): File? = files.firstOrNull { isSupportedExtension(it.extension) }
+
     fun convertToWav(sourceFile: File): File? {
         LOG.info("convertToWav called for: ${sourceFile.absolutePath}, exists=${sourceFile.exists()}")
         if (!sourceFile.exists()) {

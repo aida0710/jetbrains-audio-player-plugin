@@ -4,14 +4,22 @@ import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.HyperlinkLabel
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.*
+import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
+import java.awt.dnd.DnDConstants
+import java.awt.dnd.DropTarget
+import java.awt.dnd.DropTargetAdapter
+import java.awt.dnd.DropTargetDropEvent
 import java.awt.event.KeyEvent
 import java.awt.image.BufferedImage
 import java.io.File
@@ -24,6 +32,7 @@ import javax.swing.table.DefaultTableModel
 
 class AudioPlayerPanel(
     private val file: VirtualFile,
+    private val project: Project,
 ) : JPanel(BorderLayout()) {
     private val playerService = AudioPlayerService()
     private val log = Logger.getInstance(AudioPlayerPanel::class.java)
@@ -124,6 +133,30 @@ class AudioPlayerPanel(
         setupUI()
         setupListeners()
         loadFile()
+        DropTarget(
+            this,
+            object : DropTargetAdapter() {
+                override fun drop(event: DropTargetDropEvent) {
+                    try {
+                        event.acceptDrop(DnDConstants.ACTION_COPY)
+                        @Suppress("UNCHECKED_CAST")
+                        val dropped =
+                            event.transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<java.io.File>
+                        val audio = AudioConverter.firstAudioFile(dropped)
+                        if (audio != null) {
+                            val vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(audio)
+                            if (vf != null) {
+                                FileEditorManager.getInstance(project).openFile(vf, true)
+                            }
+                        }
+                        event.dropComplete(true)
+                    } catch (e: Exception) {
+                        log.error("Drop failed", e)
+                        event.dropComplete(false)
+                    }
+                }
+            },
+        )
     }
 
     private fun setupUI() {

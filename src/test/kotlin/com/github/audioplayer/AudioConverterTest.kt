@@ -69,6 +69,22 @@ class AudioConverterTest {
         assertEquals("/tmp/out.wav", cmd.last())
     }
 
+    @Test
+    fun `firstAudioFile picks first supported`() {
+        val files =
+            listOf(
+                java.io.File("/a/readme.txt"),
+                java.io.File("/a/song.mp3"),
+                java.io.File("/a/b.wav"),
+            )
+        assertEquals("song.mp3", AudioConverter.firstAudioFile(files)?.name)
+    }
+
+    @Test
+    fun `firstAudioFile null when none supported`() {
+        assertNull(AudioConverter.firstAudioFile(listOf(java.io.File("/a/x.txt"))))
+    }
+
     private fun createMinimalWavFile(file: File) {
         val header = ByteArray(44)
         "RIFF".toByteArray().copyInto(header, 0)

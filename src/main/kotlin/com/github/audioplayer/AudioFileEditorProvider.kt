@@ -18,7 +18,7 @@ class AudioFileEditorProvider :
     override fun createEditor(
         project: Project,
         file: VirtualFile,
-    ): FileEditor = AudioFileEditor(file)
+    ): FileEditor = AudioFileEditor(file, project)
 
     override fun getEditorTypeId(): String = "audio-player-editor"
 
