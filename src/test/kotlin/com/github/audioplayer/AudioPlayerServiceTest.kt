@@ -117,4 +117,40 @@ class AudioPlayerServiceTest {
     fun `computeSeekTarget returns zero when total is zero`() {
         assertEquals(0L, AudioPlayerService.computeSeekTarget(0L, 5_000_000L, 0L))
     }
+
+    @Test
+    fun `computePeak returns max abs normalized`() {
+        assertEquals(1.0f, AudioPlayerService.computePeak(shortArrayOf(0, 16384, -32768)), 0.001f)
+        assertEquals(0.5f, AudioPlayerService.computePeak(shortArrayOf(16384)), 0.01f)
+        assertEquals(0.0f, AudioPlayerService.computePeak(shortArrayOf()), 0.0f)
+    }
+
+    @Test
+    fun `computeRms returns normalized rms`() {
+        assertEquals(0.0f, AudioPlayerService.computeRms(shortArrayOf(0, 0)), 0.0f)
+        assertEquals(1.0f, AudioPlayerService.computeRms(shortArrayOf(32767, -32767)), 0.01f)
+        assertEquals(0.0f, AudioPlayerService.computeRms(shortArrayOf()), 0.0f)
+    }
+
+    @Test
+    fun `renderedToOriginalMicros scales by speed`() {
+        assertEquals(20_000_000L, AudioPlayerService.renderedToOriginalMicros(10_000_000L, 2.0f))
+        assertEquals(10_000_000L, AudioPlayerService.renderedToOriginalMicros(10_000_000L, 1.0f))
+    }
+
+    @Test
+    fun `originalToRenderedMicros divides by speed`() {
+        assertEquals(10_000_000L, AudioPlayerService.originalToRenderedMicros(20_000_000L, 2.0f))
+        assertEquals(20_000_000L, AudioPlayerService.originalToRenderedMicros(10_000_000L, 0.5f))
+    }
+
+    @Test
+    fun `bytesToShorts converts little-endian 16-bit`() {
+        // 0x0000=0, 0x0100=256 (LE), 0xFFFF=-1
+        val bytes = byteArrayOf(0x00, 0x00, 0x00, 0x01, 0xFF.toByte(), 0xFF.toByte())
+        val shorts = AudioPlayerService.bytesToShorts(bytes, 6)
+        assertEquals(0.toShort(), shorts[0])
+        assertEquals(256.toShort(), shorts[1])
+        assertEquals((-1).toShort(), shorts[2])
+    }
 }

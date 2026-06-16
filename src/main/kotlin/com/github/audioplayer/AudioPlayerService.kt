@@ -143,6 +143,50 @@ class AudioPlayerService {
     }
 
     companion object {
+        fun computePeak(samples: ShortArray): Float {
+            if (samples.isEmpty()) return 0f
+            var maxAbs = 0
+            for (s in samples) {
+                val a = if (s.toInt() == Short.MIN_VALUE.toInt()) 32768 else kotlin.math.abs(s.toInt())
+                if (a > maxAbs) maxAbs = a
+            }
+            return (maxAbs / 32768f).coerceIn(0f, 1f)
+        }
+
+        fun computeRms(samples: ShortArray): Float {
+            if (samples.isEmpty()) return 0f
+            var sum = 0.0
+            for (s in samples) {
+                val v = s.toDouble()
+                sum += v * v
+            }
+            return (kotlin.math.sqrt(sum / samples.size) / 32768.0).toFloat().coerceIn(0f, 1f)
+        }
+
+        fun renderedToOriginalMicros(
+            renderedMicros: Long,
+            speed: Float,
+        ): Long = (renderedMicros * speed).toLong()
+
+        fun originalToRenderedMicros(
+            originalMicros: Long,
+            speed: Float,
+        ): Long = (originalMicros / speed).toLong()
+
+        fun bytesToShorts(
+            bytes: ByteArray,
+            length: Int,
+        ): ShortArray {
+            val count = length / 2
+            val out = ShortArray(count)
+            for (i in 0 until count) {
+                val lo = bytes[i * 2].toInt() and 0xFF
+                val hi = bytes[i * 2 + 1].toInt()
+                out[i] = ((hi shl 8) or lo).toShort()
+            }
+            return out
+        }
+
         fun computeSeekTarget(
             currentMicros: Long,
             deltaMicros: Long,

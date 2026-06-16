@@ -60,6 +60,15 @@ class AudioConverterTest {
         assertEquals(listOf("/bin/ffmpeg", "-i", "/tmp/in.wav", "-y", "/tmp/out.mp3"), cmd)
     }
 
+    @Test
+    fun `buildAtempoCommand builds pitch-preserving tempo command`() {
+        val cmd = AudioConverter.buildAtempoCommand("/bin/ffmpeg", "/tmp/in.wav", "/tmp/out.wav", 1.5f)
+        assertEquals("/bin/ffmpeg", cmd[0])
+        assertEquals("/tmp/in.wav", cmd[cmd.indexOf("-i") + 1])
+        assertEquals("atempo=1.5", cmd[cmd.indexOf("-filter:a") + 1])
+        assertEquals("/tmp/out.wav", cmd.last())
+    }
+
     private fun createMinimalWavFile(file: File) {
         val header = ByteArray(44)
         "RIFF".toByteArray().copyInto(header, 0)

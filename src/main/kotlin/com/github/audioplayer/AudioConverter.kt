@@ -52,6 +52,49 @@ object AudioConverter {
         output: String,
     ): List<String> = listOf(ffmpeg, "-i", input, "-y", output)
 
+    fun buildAtempoCommand(
+        ffmpeg: String,
+        input: String,
+        output: String,
+        speed: Float,
+    ): List<String> =
+        listOf(
+            ffmpeg,
+            "-i",
+            input,
+            "-filter:a",
+            "atempo=$speed",
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            "44100",
+            "-ac",
+            "2",
+            "-y",
+            output,
+        )
+
+    fun renderAtempo(
+        input: File,
+        output: File,
+        speed: Float,
+    ): Boolean {
+        val ffmpeg = FfmpegPathUtil.findFfmpeg() ?: return false
+        return try {
+            val process =
+                ProcessBuilder(buildAtempoCommand(ffmpeg, input.absolutePath, output.absolutePath, speed))
+                    .redirectErrorStream(true)
+                    .start()
+            val out = process.inputStream.bufferedReader().use { it.readText() }
+            val code = process.waitFor()
+            if (code != 0) LOG.error("atempo failed ($code): $out")
+            code == 0
+        } catch (e: Exception) {
+            LOG.error("atempo render failed", e)
+            false
+        }
+    }
+
     fun export(
         input: File,
         output: File,
