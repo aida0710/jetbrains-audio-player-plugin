@@ -40,6 +40,18 @@ class TimelineImagePanel(
             repaint()
         }
 
+    var aMarkerMicros: Long = -1
+        set(value) {
+            field = value
+            repaint()
+        }
+
+    var bMarkerMicros: Long = -1
+        set(value) {
+            field = value
+            repaint()
+        }
+
     var viewStartMicros: Long = 0
         set(value) {
             field = value
@@ -103,6 +115,25 @@ class TimelineImagePanel(
             g.drawString(tick.label, tick.xPixel + 2, height - 3)
         }
 
+        val a = aMarkerMicros
+        val b = bMarkerMicros
+        if (a in vs..ve || b in vs..ve || (a in 0..vs && b >= ve)) {
+            if (a in 0 until b) {
+                val ax = xAtTime(a.coerceIn(vs, ve), width, vs, ve).coerceIn(0, width)
+                val bx = xAtTime(b.coerceIn(vs, ve), width, vs, ve).coerceIn(0, width)
+                g.color = AB_REGION_COLOR
+                g.fillRect(ax, 0, (bx - ax).coerceAtLeast(0), height)
+            }
+        }
+        if (a in vs..ve) {
+            g.color = AB_MARKER_COLOR
+            g.fillRect(xAtTime(a, width, vs, ve).coerceIn(0, width - 1), 0, 2, height)
+        }
+        if (b in vs..ve) {
+            g.color = AB_MARKER_COLOR
+            g.fillRect(xAtTime(b, width, vs, ve).coerceIn(0, width - 1), 0, 2, height)
+        }
+
         if (positionMicros in vs..ve) {
             val x = xAtTime(positionMicros, width, vs, ve)
             g.color = PLAYHEAD_COLOR
@@ -120,6 +151,8 @@ class TimelineImagePanel(
         private val PLAYHEAD_COLOR = JBColor(Color(0xFF, 0x33, 0x33), Color(0xFF, 0x55, 0x55))
         private val PROGRESS_COLOR = Color(0x44, 0x88, 0xCC, 0x40)
         private val RULER_COLOR = JBColor(Color(0x88, 0x88, 0x88), Color(0xAA, 0xAA, 0xAA))
+        private val AB_MARKER_COLOR = JBColor(Color(0x00, 0x96, 0x88), Color(0x26, 0xA6, 0x9A))
+        private val AB_REGION_COLOR = Color(0x00, 0x96, 0x88, 0x33)
 
         private val NICE_INTERVALS =
             listOf(
