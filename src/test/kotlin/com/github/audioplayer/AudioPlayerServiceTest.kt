@@ -166,4 +166,9 @@ class AudioPlayerServiceTest {
         assertFalse(AudioPlayerService.shouldLoopBack(5_000_000, -1, 4_000_000))
         assertFalse(AudioPlayerService.shouldLoopBack(5_000_000, 4_000_000, 4_000_000))
     }
+
+    @Test
+    fun `shouldLoopBack true when A is zero`() {
+        assertTrue(AudioPlayerService.shouldLoopBack(4_000_000, 0, 4_000_000))
+    }
 }

@@ -521,7 +521,11 @@ class AudioPlayerPanel(
 
         setAButton.addActionListener {
             loopAMicros = playerService.currentMicroseconds
-            if (loopBMicros in 0..loopAMicros) loopBMicros = -1
+            if (loopBMicros in 0..loopAMicros) {
+                loopBMicros = -1
+                abLoopEnabled = false
+                abLoopToggle.isSelected = false
+            }
             applyMarkers()
         }
         setBButton.addActionListener {
@@ -532,8 +536,18 @@ class AudioPlayerPanel(
             }
         }
         abLoopToggle.addActionListener {
-            abLoopEnabled = abLoopToggle.isSelected && loopAMicros >= 0 && loopBMicros > loopAMicros
+            val valid = loopAMicros >= 0 && loopBMicros > loopAMicros
+            abLoopEnabled = abLoopToggle.isSelected && valid
             abLoopToggle.isSelected = abLoopEnabled
+            if (abLoopEnabled) {
+                if (loopButton.isSelected) {
+                    loopButton.isSelected = false
+                    playerService.setLooping(false)
+                }
+                statusLabel.text = ""
+            } else if (!valid) {
+                statusLabel.text = "A-B: AとBを設定してください"
+            }
         }
         abClearButton.addActionListener {
             loopAMicros = -1
@@ -852,10 +866,11 @@ class AudioPlayerPanel(
         positionTimer =
             Timer(100) {
                 if (!isSeeking) {
-                    val current = playerService.currentMicroseconds
+                    var current = playerService.currentMicroseconds
                     val total = playerService.totalMicroseconds
                     if (abLoopEnabled && AudioPlayerService.shouldLoopBack(current, loopAMicros, loopBMicros)) {
                         playerService.seek(loopAMicros)
+                        current = loopAMicros
                     }
                     if (total > 0) {
                         seekSlider.value = ((current * 1000) / total).toInt()
