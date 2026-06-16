@@ -3,6 +3,7 @@ package com.github.audioplayer
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.ide.CopyPasteManager
@@ -58,7 +59,7 @@ class AudioPlayerPanel(
     private val settingsLink =
         HyperlinkLabel("ffmpeg/ffprobe が見つかりません。設定で設定してください").apply {
             addHyperlinkListener {
-                ShowSettingsUtil.getInstance().showSettingsDialog(null, AudioPlayerSettingsConfigurable::class.java)
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, AudioPlayerSettingsConfigurable::class.java)
             }
             isVisible = false
         }
@@ -133,23 +134,36 @@ class AudioPlayerPanel(
         setupUI()
         setupListeners()
         loadFile()
+    }
+
+    // 音声ファイルのドラッグ&ドロップを受け付けて開く。flavor 未対応(IDE内部ドラッグ等)は拒否し、
+    // VFS 解決は EDT を塞がないようプール上で行い、openFile のみ EDT に戻す。
+    private fun setupDropTarget() {
         DropTarget(
             this,
             object : DropTargetAdapter() {
                 override fun drop(event: DropTargetDropEvent) {
+                    if (!event.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                        event.rejectDrop()
+                        return
+                    }
                     try {
                         event.acceptDrop(DnDConstants.ACTION_COPY)
                         @Suppress("UNCHECKED_CAST")
                         val dropped =
                             event.transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<java.io.File>
                         val audio = AudioConverter.firstAudioFile(dropped)
+                        event.dropComplete(audio != null)
                         if (audio != null) {
-                            val vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(audio)
-                            if (vf != null) {
-                                FileEditorManager.getInstance(project).openFile(vf, true)
+                            ApplicationManager.getApplication().executeOnPooledThread {
+                                val vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(audio)
+                                if (vf != null) {
+                                    ApplicationManager.getApplication().invokeLater {
+                                        FileEditorManager.getInstance(project).openFile(vf, true)
+                                    }
+                                }
                             }
                         }
-                        event.dropComplete(true)
                     } catch (e: Exception) {
                         log.error("Drop failed", e)
                         event.dropComplete(false)
@@ -640,6 +654,8 @@ class AudioPlayerPanel(
                 }
             }.start()
         }
+
+        setupDropTarget()
     }
 
     private fun loadFile() {
@@ -873,7 +889,7 @@ class AudioPlayerPanel(
             .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP_ID)
             ?.createNotification("Audio Player", content, type)
-            ?.notify(null)
+            ?.notify(project)
     }
 
     private fun notifyDependencyMissing(
@@ -895,9 +911,12 @@ class AudioPlayerPanel(
             .createNotification("Audio Player", content, NotificationType.WARNING)
             .addAction(
                 NotificationAction.createSimple("設定を開く") {
-                    ShowSettingsUtil.getInstance().showSettingsDialog(null, AudioPlayerSettingsConfigurable::class.java)
+                    ShowSettingsUtil.getInstance().showSettingsDialog(
+                        project,
+                        AudioPlayerSettingsConfigurable::class.java,
+                    )
                 },
-            ).notify(null)
+            ).notify(project)
         dependencyNotificationShown = true
     }
 
