@@ -101,8 +101,15 @@ class AudioPlayerPanel(
     private val levelExecutor = Executors.newSingleThreadExecutor()
     private val levelBusy = AtomicBoolean(false)
 
-    private val settingsState
-        get() = AudioPlayerSettings.instance.state
+    // プラグインの動的アンロード中などサービスが取得できない場合に備え、取得失敗時は
+    // 使い捨ての既定値を返す（teardown 中のリスナ発火による NPE を防ぐ）。
+    private val settingsState: AudioPlayerSettings.SettingsState
+        get() =
+            try {
+                AudioPlayerSettings.instance.state
+            } catch (e: Exception) {
+                AudioPlayerSettings.SettingsState()
+            }
 
     init {
         border = JBUI.Borders.empty(8)
