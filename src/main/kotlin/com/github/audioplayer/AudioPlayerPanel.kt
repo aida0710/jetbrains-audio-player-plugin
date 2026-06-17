@@ -98,7 +98,10 @@ class AudioPlayerPanel(
 
     private var isSeeking = false
     private var positionTimer: Timer? = null
+
+    @Volatile
     private var visualizationRequestId = 0
+    private val visualizationExecutor = Executors.newSingleThreadExecutor()
 
     private var speedSeq = 0
     private val levelExecutor = Executors.newSingleThreadExecutor()
@@ -791,7 +794,11 @@ class AudioPlayerPanel(
         val split = settingsState.waveformSplitChannels
         timelinePanel.image = null
         timelinePanel.placeholderText = if (isSpectrum) "Generating spectrum..." else "Generating waveform..."
-        Thread {
+        // 単一スレッドで直列化し、連打で積まれた古いリクエストは ffmpeg を実行せずスキップする。
+        // これにより -/+ や Waveform/Spectrum を連打しても実際に走る ffmpeg は最新の1つだけになり、
+        // プロセス/スレッドの多重起動によるリソース枯渇クラッシュを防ぐ。
+        visualizationExecutor.submit {
+            if (requestId != visualizationRequestId) return@submit
             val img: BufferedImage? =
                 if (isSpectrum) {
                     AudioAnalyzer.generateSpectrumImage(File(file.path), 800, 200, startSec, lenSec)
@@ -807,7 +814,7 @@ class AudioPlayerPanel(
                     timelinePanel.placeholderText = "Failed to generate (ffmpeg required)"
                 }
             }
-        }.start()
+        }
     }
 
     private fun applyVisualizerVisibility(show: Boolean) {
@@ -928,6 +935,7 @@ class AudioPlayerPanel(
 
     fun dispose() {
         stopPositionTimer()
+        visualizationExecutor.shutdownNow()
         levelExecutor.shutdownNow()
         playerService.dispose()
     }
