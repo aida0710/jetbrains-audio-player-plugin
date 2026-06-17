@@ -3,6 +3,12 @@ set -e
 
 echo "=== Audio Player Plugin - Signed Build ==="
 
+if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+fi
+
 if [ -z "$CERTIFICATE_CHAIN" ] && [ ! -f "chain.crt" ]; then
     echo "Error: CERTIFICATE_CHAIN env var or chain.crt file required"
     exit 1
