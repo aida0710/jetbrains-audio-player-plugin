@@ -23,6 +23,8 @@ object AudioConverter {
 
     fun isSupportedExtension(extension: String?): Boolean = extension?.lowercase() in SUPPORTED_EXTENSIONS
 
+    fun firstAudioFile(files: List<File>): File? = files.firstOrNull { isSupportedExtension(it.extension) }
+
     fun convertToWav(sourceFile: File): File? {
         LOG.info("convertToWav called for: ${sourceFile.absolutePath}, exists=${sourceFile.exists()}")
         if (!sourceFile.exists()) {
@@ -44,6 +46,75 @@ object AudioConverter {
         }
 
         return convertWithFfmpeg(sourceFile)
+    }
+
+    fun buildExportCommand(
+        ffmpeg: String,
+        input: String,
+        output: String,
+    ): List<String> = listOf(ffmpeg, "-i", input, "-y", output)
+
+    fun buildAtempoCommand(
+        ffmpeg: String,
+        input: String,
+        output: String,
+        speed: Float,
+    ): List<String> =
+        listOf(
+            ffmpeg,
+            "-i",
+            input,
+            "-filter:a",
+            "atempo=$speed",
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            "44100",
+            "-ac",
+            "2",
+            "-y",
+            output,
+        )
+
+    fun renderAtempo(
+        input: File,
+        output: File,
+        speed: Float,
+    ): Boolean {
+        val ffmpeg = FfmpegPathUtil.findFfmpeg() ?: return false
+        return try {
+            val process =
+                ProcessBuilder(buildAtempoCommand(ffmpeg, input.absolutePath, output.absolutePath, speed))
+                    .redirectErrorStream(true)
+                    .start()
+            val out = process.inputStream.bufferedReader().use { it.readText() }
+            val code = process.waitFor()
+            if (code != 0) LOG.error("atempo failed ($code): $out")
+            code == 0
+        } catch (e: Exception) {
+            LOG.error("atempo render failed", e)
+            false
+        }
+    }
+
+    fun export(
+        input: File,
+        output: File,
+    ): Boolean {
+        val ffmpeg = FfmpegPathUtil.findFfmpeg() ?: return false
+        return try {
+            val process =
+                ProcessBuilder(buildExportCommand(ffmpeg, input.absolutePath, output.absolutePath))
+                    .redirectErrorStream(true)
+                    .start()
+            val output2 = process.inputStream.bufferedReader().use { it.readText() }
+            val code = process.waitFor()
+            if (code != 0) LOG.error("ffmpeg export failed ($code): $output2")
+            code == 0
+        } catch (e: Exception) {
+            LOG.error("Export failed", e)
+            false
+        }
     }
 
     private fun convertWithFfmpeg(sourceFile: File): File? {

@@ -17,14 +17,28 @@ class AudioPlayerService {
     private var wavFile: File? = null
     private var isLooping = false
 
+    var speed: Float = 1.0f
+        private set
+    private var renderedWav: File? = null
+    private var activeWav: File? = null
+    private var volumePercent: Float = 80f
+
+    var originalTotalMicros: Long = 0
+        private set
+
     var onStateChanged: ((PlaybackState) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
 
     val totalMicroseconds: Long
-        get() = clip?.microsecondLength ?: 0
+        get() = originalTotalMicros
 
     val currentMicroseconds: Long
-        get() = clip?.microsecondPosition ?: 0
+        get() =
+            try {
+                renderedToOriginalMicros(clip?.microsecondPosition ?: 0, speed)
+            } catch (e: Exception) {
+                0
+            }
 
     fun load(sourceFile: File) {
         stop()
@@ -36,15 +50,21 @@ class AudioPlayerService {
             return
         }
         wavFile = converted
-        log.info("Converted file: ${converted.absolutePath}, size=${converted.length()}")
+        speed = 1.0f
+        renderedWav = null
+        if (openClip(converted)) {
+            originalTotalMicros = clip?.microsecondLength ?: 0
+        }
+    }
 
+    private fun openClip(wav: File): Boolean =
         try {
-            val audioStream = AudioSystem.getAudioInputStream(converted)
-            log.info("AudioInputStream format: ${audioStream.format}")
+            clip?.close()
+            activeWav = wav
+            val audioStream = AudioSystem.getAudioInputStream(wav)
             clip =
                 AudioSystem.getClip().apply {
                     open(audioStream)
-                    log.info("Clip opened. Duration: ${microsecondLength / 1_000_000}s")
                     addLineListener { event ->
                         if (event.type == LineEvent.Type.STOP && state == PlaybackState.PLAYING) {
                             if (!isLooping && microsecondPosition >= microsecondLength) {
@@ -54,11 +74,12 @@ class AudioPlayerService {
                         }
                     }
                 }
+            true
         } catch (e: Exception) {
             log.error("Failed to open audio clip", e)
             onError?.invoke("Failed to open audio: ${e.message}")
+            false
         }
-    }
 
     fun play() {
         val c = clip ?: return
@@ -95,12 +116,14 @@ class AudioPlayerService {
 
     fun seek(microseconds: Long) {
         val c = clip ?: return
-        val clamped = microseconds.coerceIn(0, c.microsecondLength)
-        c.microsecondPosition = clamped
-        pausePosition = clamped
+        val originalClamped = microseconds.coerceIn(0, originalTotalMicros)
+        val rendered = originalToRenderedMicros(originalClamped, speed).coerceIn(0, c.microsecondLength)
+        c.microsecondPosition = rendered
+        pausePosition = rendered
     }
 
     fun setVolume(percent: Float) {
+        volumePercent = percent
         val c = clip ?: return
         try {
             val gainControl = c.getControl(FloatControl.Type.MASTER_GAIN) as FloatControl
@@ -129,6 +152,77 @@ class AudioPlayerService {
         }
     }
 
+    fun prepareSpeed(newSpeed: Float): File? {
+        val base = wavFile ?: return null
+        if (newSpeed == 1.0f) return base
+        val out = File.createTempFile("audioplayer_speed_", ".wav")
+        out.deleteOnExit()
+        return if (AudioConverter.renderAtempo(base, out, newSpeed)) {
+            out
+        } else {
+            out.delete()
+            null
+        }
+    }
+
+    // MUST be called on the EDT (mutates clip/state)
+    fun applySpeed(
+        newSpeed: Float,
+        targetWav: File,
+    ) {
+        if (newSpeed == speed) return
+        val base = wavFile ?: return
+        val wasPlaying = state == PlaybackState.PLAYING
+        val wasStopped = state == PlaybackState.STOPPED
+        val originalPos = currentMicroseconds
+        if (wasPlaying) clip?.stop()
+        renderedWav?.let { if (it != base) it.delete() }
+        renderedWav = if (newSpeed == 1.0f) null else targetWav
+        speed = newSpeed
+        if (!openClip(targetWav)) return
+        setVolume(volumePercent)
+        val rendered = originalToRenderedMicros(originalPos, newSpeed).coerceIn(0, clip?.microsecondLength ?: 0)
+        clip?.microsecondPosition = rendered
+        pausePosition = rendered
+        when {
+            wasPlaying -> play()
+            wasStopped -> {
+                state = PlaybackState.STOPPED
+                onStateChanged?.invoke(state)
+            }
+            else -> {
+                state = PlaybackState.PAUSED
+                onStateChanged?.invoke(state)
+            }
+        }
+    }
+
+    fun currentLevel(): Pair<Float, Float>? {
+        if (state != PlaybackState.PLAYING) return null
+        val wav = activeWav ?: return null
+        val c = clip ?: return null
+        return try {
+            val ais = AudioSystem.getAudioInputStream(wav)
+            ais.use {
+                val fmt = it.format
+                val frameSize = fmt.frameSize.coerceAtLeast(1)
+                var toSkip = (c.microsecondPosition / 1_000_000.0 * fmt.frameRate).toLong() * frameSize
+                while (toSkip > 0) {
+                    val skipped = it.skip(toSkip)
+                    if (skipped <= 0) break
+                    toSkip -= skipped
+                }
+                val buf = ByteArray(2048 * frameSize)
+                val n = it.read(buf)
+                if (n <= 0) return null
+                val samples = bytesToShorts(buf, n)
+                computePeak(samples) to computeRms(samples)
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun dispose() {
         clip?.stop()
         clip?.close()
@@ -138,11 +232,68 @@ class AudioPlayerService {
                 it.delete()
             }
         }
+        renderedWav?.let {
+            if (it.name.startsWith("audioplayer_")) {
+                it.delete()
+            }
+        }
         wavFile = null
+        renderedWav = null
+        activeWav = null
         state = PlaybackState.STOPPED
     }
 
     companion object {
+        fun computePeak(samples: ShortArray): Float {
+            if (samples.isEmpty()) return 0f
+            var maxAbs = 0
+            for (s in samples) {
+                val a = if (s.toInt() == Short.MIN_VALUE.toInt()) 32768 else kotlin.math.abs(s.toInt())
+                if (a > maxAbs) maxAbs = a
+            }
+            return (maxAbs / 32768f).coerceIn(0f, 1f)
+        }
+
+        fun computeRms(samples: ShortArray): Float {
+            if (samples.isEmpty()) return 0f
+            var sum = 0.0
+            for (s in samples) {
+                val v = s.toDouble()
+                sum += v * v
+            }
+            return (kotlin.math.sqrt(sum / samples.size) / 32768.0).toFloat().coerceIn(0f, 1f)
+        }
+
+        fun renderedToOriginalMicros(
+            renderedMicros: Long,
+            speed: Float,
+        ): Long = (renderedMicros * speed).toLong()
+
+        fun originalToRenderedMicros(
+            originalMicros: Long,
+            speed: Float,
+        ): Long = (originalMicros / speed).toLong()
+
+        fun bytesToShorts(
+            bytes: ByteArray,
+            length: Int,
+        ): ShortArray {
+            val count = length / 2
+            val out = ShortArray(count)
+            for (i in 0 until count) {
+                val lo = bytes[i * 2].toInt() and 0xFF
+                val hi = bytes[i * 2 + 1].toInt()
+                out[i] = ((hi shl 8) or lo).toShort()
+            }
+            return out
+        }
+
+        fun computeSeekTarget(
+            currentMicros: Long,
+            deltaMicros: Long,
+            totalMicros: Long,
+        ): Long = (currentMicros + deltaMicros).coerceIn(0, totalMicros)
+
         fun formatTime(totalSeconds: Long): String {
             val hours = totalSeconds / 3600
             val minutes = (totalSeconds % 3600) / 60

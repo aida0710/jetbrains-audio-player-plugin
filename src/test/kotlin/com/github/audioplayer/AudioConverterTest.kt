@@ -54,6 +54,37 @@ class AudioConverterTest {
         assertTrue(result!!.exists())
     }
 
+    @Test
+    fun `buildExportCommand builds ffmpeg convert command`() {
+        val cmd = AudioConverter.buildExportCommand("/bin/ffmpeg", "/tmp/in.wav", "/tmp/out.mp3")
+        assertEquals(listOf("/bin/ffmpeg", "-i", "/tmp/in.wav", "-y", "/tmp/out.mp3"), cmd)
+    }
+
+    @Test
+    fun `buildAtempoCommand builds pitch-preserving tempo command`() {
+        val cmd = AudioConverter.buildAtempoCommand("/bin/ffmpeg", "/tmp/in.wav", "/tmp/out.wav", 1.5f)
+        assertEquals("/bin/ffmpeg", cmd[0])
+        assertEquals("/tmp/in.wav", cmd[cmd.indexOf("-i") + 1])
+        assertEquals("atempo=1.5", cmd[cmd.indexOf("-filter:a") + 1])
+        assertEquals("/tmp/out.wav", cmd.last())
+    }
+
+    @Test
+    fun `firstAudioFile picks first supported`() {
+        val files =
+            listOf(
+                java.io.File("/a/readme.txt"),
+                java.io.File("/a/song.mp3"),
+                java.io.File("/a/b.wav"),
+            )
+        assertEquals("song.mp3", AudioConverter.firstAudioFile(files)?.name)
+    }
+
+    @Test
+    fun `firstAudioFile null when none supported`() {
+        assertNull(AudioConverter.firstAudioFile(listOf(java.io.File("/a/x.txt"))))
+    }
+
     private fun createMinimalWavFile(file: File) {
         val header = ByteArray(44)
         "RIFF".toByteArray().copyInto(header, 0)

@@ -11,10 +11,14 @@ data class AudioMetadata(
     val sampleRate: Int,
     val fileSize: Long,
     val durationSeconds: Double,
+    val tags: Map<String, String> = emptyMap(),
 )
 
 object AudioProbe {
     private val LOG = Logger.getInstance(AudioProbe::class.java)
+    private val FORMAT_BLOCK_REGEX = """"format"\s*:\s*\{""".toRegex()
+    private val TAGS_BLOCK_REGEX = """"tags"\s*:\s*\{([^}]*)\}""".toRegex()
+    private val TAG_KV_REGEX = """"([^"]+)"\s*:\s*"([^"]*)"""".toRegex()
 
     fun probe(file: File): AudioMetadata? {
         if (!file.exists()) return null
@@ -88,6 +92,7 @@ object AudioProbe {
                 sampleRate = sampleRate,
                 fileSize = fileSize,
                 durationSeconds = duration,
+                tags = parseTags(json),
             )
         } catch (e: Exception) {
             LOG.error("Failed to parse ffprobe JSON", e)
@@ -121,4 +126,10 @@ object AudioProbe {
         channels: Int,
         layout: String,
     ): String = "$channels ch ($layout)"
+
+    fun parseTags(json: String): Map<String, String> {
+        val formatStart = FORMAT_BLOCK_REGEX.find(json)?.range?.first ?: return emptyMap()
+        val tagsBlock = TAGS_BLOCK_REGEX.find(json, formatStart)?.groupValues?.get(1) ?: return emptyMap()
+        return TAG_KV_REGEX.findAll(tagsBlock).associate { it.groupValues[1].lowercase() to it.groupValues[2] }
+    }
 }

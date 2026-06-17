@@ -13,6 +13,12 @@ class AudioPlayerSettings : PersistentStateComponent<AudioPlayerSettings.Setting
     data class SettingsState(
         var ffmpegPath: String = "",
         var ffprobePath: String = "",
+        var lastVolume: Int = 80,
+        var lastLooping: Boolean = false,
+        var defaultView: String = "waveform",
+        var showVisualizer: Boolean = true,
+        var waveformSplitChannels: Boolean = false,
+        var lastSpeed: Float = 1.0f,
     )
 
     private var myState = SettingsState()

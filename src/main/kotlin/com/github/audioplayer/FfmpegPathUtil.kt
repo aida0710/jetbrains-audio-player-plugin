@@ -6,49 +6,64 @@ import java.io.File
 object FfmpegPathUtil {
     private val LOG = Logger.getInstance(FfmpegPathUtil::class.java)
 
-    private val FFMPEG_SEARCH_PATHS =
-        listOf(
-            "/opt/homebrew/bin/ffmpeg",
-            "/usr/local/bin/ffmpeg",
-            "/usr/bin/ffmpeg",
-        )
+    fun isWindowsOs(osName: String): Boolean = osName.lowercase().startsWith("win")
 
-    private val FFPROBE_SEARCH_PATHS =
-        listOf(
-            "/opt/homebrew/bin/ffprobe",
-            "/usr/local/bin/ffprobe",
-            "/usr/bin/ffprobe",
-        )
+    fun locateCommand(windows: Boolean): String = if (windows) "where" else "which"
 
-    fun autoDetectFfmpeg(): String? = autoDetect("ffmpeg", FFMPEG_SEARCH_PATHS)
-
-    fun autoDetectFfprobe(): String? = autoDetect("ffprobe", FFPROBE_SEARCH_PATHS)
-
-    private fun autoDetect(
+    fun candidatePaths(
         command: String,
-        searchPaths: List<String>,
-    ): String? {
-        // PATHから`which`で検索
+        windows: Boolean,
+        env: (String) -> String?,
+    ): List<String> =
+        if (!windows) {
+            listOf(
+                "/opt/homebrew/bin/$command",
+                "/usr/local/bin/$command",
+                "/usr/bin/$command",
+            )
+        } else {
+            val exe = "$command.exe"
+            buildList {
+                env("LOCALAPPDATA")?.let { add("$it\\Microsoft\\WinGet\\Links\\$exe") }
+                env("USERPROFILE")?.let { add("$it\\scoop\\shims\\$exe") }
+                add("C:\\ProgramData\\chocolatey\\bin\\$exe")
+                add("C:\\ffmpeg\\bin\\$exe")
+                add("${env("ProgramFiles") ?: "C:\\Program Files"}\\ffmpeg\\bin\\$exe")
+            }
+        }
+
+    fun autoDetectFfmpeg(): String? = autoDetect("ffmpeg")
+
+    fun autoDetectFfprobe(): String? = autoDetect("ffprobe")
+
+    private fun autoDetect(command: String): String? {
+        val windows = isWindowsOs(System.getProperty("os.name").orEmpty())
+        val locate = locateCommand(windows)
+
+        // PATH から where/which で検索
         try {
             val process =
-                ProcessBuilder("which", command)
+                ProcessBuilder(locate, command)
                     .redirectErrorStream(true)
                     .start()
             val result =
-                process.inputStream
-                    .bufferedReader()
-                    .readText()
-                    .trim()
+                process.inputStream.bufferedReader().use { reader ->
+                    reader
+                        .lineSequence()
+                        .map { it.trim() }
+                        .firstOrNull { it.isNotEmpty() }
+                        .orEmpty()
+                }
             if (process.waitFor() == 0 && result.isNotEmpty()) {
-                LOG.info("Found $command via PATH: $result")
+                LOG.info("Found $command via $locate: $result")
                 return result
             }
         } catch (e: Exception) {
-            LOG.info("'which $command' failed: ${e.message}")
+            LOG.info("'$locate $command' failed: ${e.message}")
         }
 
         // 既知のパスから検索
-        for (path in searchPaths) {
+        for (path in candidatePaths(command, windows) { System.getenv(it) }) {
             if (File(path).exists()) {
                 LOG.info("Found $command at known path: $path")
                 return path
