@@ -1,6 +1,6 @@
 package com.github.audioplayer
 
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBLabel
@@ -22,20 +22,20 @@ class AudioPlayerSettingsConfigurable : Configurable {
         ffmpegPathField =
             TextFieldWithBrowseButton().apply {
                 addBrowseFolderListener(
-                    "Select ffmpeg",
-                    "Select the ffmpeg executable",
                     null,
-                    FileChooserDescriptorFactory.createSingleFileDescriptor(),
+                    FileChooserDescriptor(true, false, false, false, false, false)
+                        .withTitle("Select ffmpeg")
+                        .withDescription("Select the ffmpeg executable"),
                 )
             }
 
         ffprobePathField =
             TextFieldWithBrowseButton().apply {
                 addBrowseFolderListener(
-                    "Select ffprobe",
-                    "Select the ffprobe executable",
                     null,
-                    FileChooserDescriptorFactory.createSingleFileDescriptor(),
+                    FileChooserDescriptor(true, false, false, false, false, false)
+                        .withTitle("Select ffprobe")
+                        .withDescription("Select the ffprobe executable"),
                 )
             }
 

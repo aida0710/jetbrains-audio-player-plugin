@@ -3,48 +3,105 @@
     <name>Audio Player</name>
     <vendor url="https://www.aida0710.work/" email="">aida0710</vendor>
     <description><![CDATA[
-<p>Play audio files directly in JetBrains IDEs with built-in playback controls, metadata display, and spectrum analysis.</p>
+<p>Play and analyze audio files directly in JetBrains IDEs — with playback controls, an interactive waveform, spectrum view, metadata, and handy ffmpeg-powered tools.</p>
 
-<h3>Features</h3>
+<h3>Playback</h3>
 <ul>
-  <li>Play/Pause, Stop, Seek, Volume control with keyboard shortcut (Space)</li>
-  <li>Loop playback</li>
-  <li>File metadata display (encoding, format, channels, sample rate, duration)</li>
-  <li>Waveform and spectrum visualization powered by ffmpeg</li>
+  <li>Play/Pause, Stop, Seek, Volume, Loop</li>
+  <li>Pitch-preserving playback speed (0.5x–2.0x)</li>
+  <li>VU / peak level meter</li>
+  <li>Keyboard shortcuts: Space (play/pause), Left/Right (±5s), Home (start)</li>
+</ul>
+
+<h3>Waveform &amp; Spectrum</h3>
+<ul>
+  <li>Interactive waveform: click/drag to seek, playhead, played-region fill, time ruler, L/R channel split</li>
+  <li>Spectrogram view</li>
+  <li>Zoom &amp; horizontal scroll (re-renders the selected range for detail)</li>
+  <li>Show/hide the visualizer for a compact view</li>
+</ul>
+
+<h3>Info &amp; Tools</h3>
+<ul>
+  <li>Metadata and tags (encoding, format, channels, sample rate, size, duration, title/artist/album, …) with copy-to-clipboard</li>
+  <li>Loudness measurement (integrated LUFS, ebur128)</li>
+  <li>Export to another format (ffmpeg)</li>
+  <li>Save the waveform/spectrum image as PNG</li>
+</ul>
+
+<h3>IDE Integration</h3>
+<ul>
+  <li>Open via project-tree right-click ("Open in Audio Player") or drag &amp; drop</li>
+  <li>Automatic ffmpeg/ffprobe detection (macOS / Linux / Windows) with a settings page</li>
 </ul>
 
 <h3>Supported Formats</h3>
-<p>mp3, wav, ogg, flac, aac, m4a, wma, opus, ape, aiff</p>
+<p>mp3, wav, ogg, flac, aac, m4a, wma, opus, ape, aiff, aif</p>
 
 <h3>Requirements</h3>
 <ul>
-  <li><b>ffmpeg</b> — required for audio playback and waveform/spectrum generation</li>
+  <li><b>ffmpeg</b> — required for playback, waveform/spectrum, speed change, loudness, and export</li>
   <li><b>ffprobe</b> — required for metadata display</li>
 </ul>
 
 <hr/>
 
-<p>JetBrains IDE上で音声ファイルを直接再生できるプラグインです。メタデータ表示やスペクトラム解析機能を備えています。</p>
+<p>JetBrains IDE 上で音声ファイルを直接再生・解析できるプラグインです。再生コントロール、インタラクティブな波形、スペクトラム、メタデータ表示、ffmpeg を使った各種ツールを備えています。</p>
 
-<h3>機能</h3>
+<h3>再生</h3>
 <ul>
-  <li>再生/一時停止、停止、シーク、音量調整、キーボードショートカット (Space)</li>
-  <li>ループ再生</li>
-  <li>ファイルメタデータ表示 (エンコーディング、フォーマット、チャンネル数、サンプルレート、再生時間)</li>
-  <li>波形・スペクトラム表示 (ffmpeg使用)</li>
+  <li>再生/一時停止、停止、シーク、音量、ループ</li>
+  <li>音程を保ったままの再生速度変更 (0.5x〜2.0x)</li>
+  <li>VU / ピークレベルメーター</li>
+  <li>キーボードショートカット: Space (再生/一時停止)、←/→ (±5秒)、Home (先頭)</li>
+</ul>
+
+<h3>波形・スペクトラム</h3>
+<ul>
+  <li>インタラクティブな波形: クリック/ドラッグでシーク、再生位置ライン、再生済み塗り、時間ルーラー、L/R 分離</li>
+  <li>スペクトログラム表示</li>
+  <li>ズーム・横スクロール (区間を再生成して細部を確認)</li>
+  <li>ビジュアライザの表示/非表示 (コンパクト表示)</li>
+</ul>
+
+<h3>情報・ツール</h3>
+<ul>
+  <li>メタデータ・タグ表示 (エンコーディング、フォーマット、チャンネル、サンプルレート、サイズ、再生時間、タイトル/アーティスト/アルバム 等) とコピー</li>
+  <li>ラウドネス測定 (統合 LUFS / ebur128)</li>
+  <li>別フォーマットへの書き出し (ffmpeg)</li>
+  <li>波形/スペクトラム画像の PNG 保存</li>
+</ul>
+
+<h3>IDE 統合</h3>
+<ul>
+  <li>プロジェクトツリー右クリック「Audio Player で開く」、ドラッグ&amp;ドロップで開く</li>
+  <li>ffmpeg/ffprobe の自動検出 (macOS / Linux / Windows) と設定画面</li>
 </ul>
 
 <h3>対応フォーマット</h3>
-<p>mp3, wav, ogg, flac, aac, m4a, wma, opus, ape, aiff</p>
+<p>mp3, wav, ogg, flac, aac, m4a, wma, opus, ape, aiff, aif</p>
 
 <h3>必要環境</h3>
 <ul>
-  <li><b>ffmpeg</b> — 音声再生および波形/スペクトラム画像生成に必要</li>
+  <li><b>ffmpeg</b> — 再生、波形/スペクトラム、速度変更、ラウドネス測定、書き出しに必要</li>
   <li><b>ffprobe</b> — メタデータ表示に必要</li>
 </ul>
 ]]></description>
 
     <change-notes><![CDATA[
+<h3>1.1.0</h3>
+<ul>
+  <li>Pitch-preserving playback speed (0.5x–2.0x) and VU/peak level meter</li>
+  <li>Interactive waveform: click/drag to seek, playhead, played-region fill, time ruler, L/R channel split</li>
+  <li>Waveform/spectrum zoom &amp; horizontal scroll</li>
+  <li>Arrow/Home key seeking; remembers volume, loop, speed, view, and visualizer state</li>
+  <li>Metadata tags + copy, loudness (LUFS) measurement, export to other formats, save image as PNG</li>
+  <li>Show/hide the visualizer (compact mode)</li>
+  <li>Open via project-tree right-click and drag &amp; drop</li>
+  <li>Automatic ffmpeg/ffprobe detection on Windows (in addition to macOS/Linux)</li>
+  <li>Replaced deprecated file-chooser APIs</li>
+</ul>
+
 <h3>1.0.0</h3>
 <ul>
   <li>Initial release</li>
