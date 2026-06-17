@@ -288,12 +288,6 @@ class AudioPlayerService {
             return out
         }
 
-        fun shouldLoopBack(
-            current: Long,
-            a: Long,
-            b: Long,
-        ): Boolean = a >= 0 && b > a && current >= b
-
         fun computeSeekTarget(
             currentMicros: Long,
             deltaMicros: Long,

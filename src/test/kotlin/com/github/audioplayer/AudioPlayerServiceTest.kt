@@ -153,22 +153,4 @@ class AudioPlayerServiceTest {
         assertEquals(256.toShort(), shorts[1])
         assertEquals((-1).toShort(), shorts[2])
     }
-
-    @Test
-    fun `shouldLoopBack true when current reaches B`() {
-        assertTrue(AudioPlayerService.shouldLoopBack(4_000_000, 1_000_000, 4_000_000))
-        assertTrue(AudioPlayerService.shouldLoopBack(5_000_000, 1_000_000, 4_000_000))
-    }
-
-    @Test
-    fun `shouldLoopBack false before B or invalid range`() {
-        assertFalse(AudioPlayerService.shouldLoopBack(3_000_000, 1_000_000, 4_000_000))
-        assertFalse(AudioPlayerService.shouldLoopBack(5_000_000, -1, 4_000_000))
-        assertFalse(AudioPlayerService.shouldLoopBack(5_000_000, 4_000_000, 4_000_000))
-    }
-
-    @Test
-    fun `shouldLoopBack true when A is zero`() {
-        assertTrue(AudioPlayerService.shouldLoopBack(4_000_000, 0, 4_000_000))
-    }
 }
