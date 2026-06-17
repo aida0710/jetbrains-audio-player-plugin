@@ -89,6 +89,13 @@
 ]]></description>
 
     <change-notes><![CDATA[
+<h3>1.1.1</h3>
+<ul>
+  <li>Fixed a crash when repeatedly zooming (−/＋) or switching Waveform/Spectrum (visualization generation is now serialized)</li>
+  <li>Spectrum view: zoom/scroll/L-R split are disabled (they apply to the waveform only); spectrum always shows the full file</li>
+  <li>Waveform: horizontal scrolling with the mouse wheel while zoomed (in addition to the scrollbar)</li>
+</ul>
+
 <h3>1.1.0</h3>
 <ul>
   <li>Pitch-preserving playback speed (0.5x–2.0x) and VU/peak level meter</li>
