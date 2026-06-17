@@ -501,6 +501,21 @@ class AudioPlayerPanel(
             }
         }
 
+        // 波形をズーム中はマウスホイールでも横スクロール可能にする（スペクトラム/全体表示時は何もしない）
+        timelinePanel.addMouseWheelListener { e ->
+            val total = playerService.totalMicroseconds
+            val w = viewEndMicros - viewStartMicros
+            if (!timelinePanel.interactive || total <= 0 || w >= total) return@addMouseWheelListener
+            val delta = (w / 5) * e.wheelRotation.toLong()
+            val (s, en) = TimelineImagePanel.panWindow(viewStartMicros, viewEndMicros, delta, total)
+            viewStartMicros = s
+            viewEndMicros = en
+            timelinePanel.viewStartMicros = s
+            timelinePanel.viewEndMicros = en
+            syncScrollBar()
+            loadVisualization()
+        }
+
         // Spaceキーで再生/一時停止を切り替え
         val spaceKey = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0)
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(spaceKey, "togglePlayPause")
@@ -750,6 +765,20 @@ class AudioPlayerPanel(
         }
     }
 
+    // スペクトラムでは波形向けのズーム/スクロール/分割は無意味なので無効化する。
+    // 波形ではズーム状態に応じてスクロールバーの有効/無効を更新する。
+    private fun updateAnalyzeControls(isSpectrum: Boolean) {
+        zoomInButton.isEnabled = !isSpectrum
+        zoomOutButton.isEnabled = !isSpectrum
+        zoomFitButton.isEnabled = !isSpectrum
+        splitChannelsToggle.isEnabled = !isSpectrum
+        if (isSpectrum) {
+            scrollBar.isEnabled = false
+        } else {
+            syncScrollBar()
+        }
+    }
+
     private fun syncScrollBar() {
         val total = playerService.totalMicroseconds
         if (total <= 0) return
@@ -788,6 +817,14 @@ class AudioPlayerPanel(
         // スペクトラムは外枠が画像に含まれ時間軸とずれるため、クリックシーク等は波形時のみ有効化する
         timelinePanel.interactive = !isSpectrum
         val total = playerService.totalMicroseconds
+        if (isSpectrum) {
+            // スペクトラムはズーム/スクロール不可。常に全体を表示する
+            viewStartMicros = 0
+            viewEndMicros = total
+            timelinePanel.viewStartMicros = viewStartMicros
+            timelinePanel.viewEndMicros = viewEndMicros
+        }
+        updateAnalyzeControls(isSpectrum)
         val full = viewStartMicros <= 0 && (viewEndMicros >= total || viewEndMicros <= 0)
         val startSec = if (full) null else viewStartMicros / 1_000_000.0
         val lenSec = if (full) null else (viewEndMicros - viewStartMicros) / 1_000_000.0
