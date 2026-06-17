@@ -782,6 +782,8 @@ class AudioPlayerPanel(
         val requestId = ++visualizationRequestId
         val view = settingsState.defaultView
         val isSpectrum = view == "spectrum"
+        // スペクトラムは外枠が画像に含まれ時間軸とずれるため、クリックシーク等は波形時のみ有効化する
+        timelinePanel.interactive = !isSpectrum
         val total = playerService.totalMicroseconds
         val full = viewStartMicros <= 0 && (viewEndMicros >= total || viewEndMicros <= 0)
         val startSec = if (full) null else viewStartMicros / 1_000_000.0

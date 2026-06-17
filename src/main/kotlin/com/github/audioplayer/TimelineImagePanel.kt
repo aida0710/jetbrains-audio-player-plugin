@@ -2,6 +2,7 @@ package com.github.audioplayer
 
 import com.intellij.ui.JBColor
 import java.awt.Color
+import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.event.MouseAdapter
@@ -52,6 +53,21 @@ class TimelineImagePanel(
             repaint()
         }
 
+    // 波形は画像が全幅＝時間軸に対応するためクリックシーク等を有効化する。
+    // スペクトラム(showspectrumpic)は周波数軸/凡例の外枠が画像に含まれ時間軸とずれるため、
+    // これを false にして画像のみ表示し、クリックシーク・再生位置ライン・塗り・ルーラーを無効化する。
+    var interactive: Boolean = true
+        set(value) {
+            field = value
+            cursor =
+                if (value) {
+                    Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                } else {
+                    Cursor.getDefaultCursor()
+                }
+            repaint()
+        }
+
     init {
         isOpaque = false
         val mouse =
@@ -65,7 +81,7 @@ class TimelineImagePanel(
     }
 
     private fun handle(x: Int) {
-        if (viewEndMicros <= viewStartMicros || width <= 0) return
+        if (!interactive || viewEndMicros <= viewStartMicros || width <= 0) return
         onSeek(timeAtX(x, width, viewStartMicros, viewEndMicros))
     }
 
@@ -86,6 +102,9 @@ class TimelineImagePanel(
                 g.drawString(text, (width - fm.stringWidth(text)) / 2, (height + fm.ascent) / 2)
             }
         }
+
+        // スペクトラム表示など非インタラクティブ時は画像のみ（時間軸オーバーレイは描かない）
+        if (!interactive) return
 
         val vs = viewStartMicros
         val ve = viewEndMicros
