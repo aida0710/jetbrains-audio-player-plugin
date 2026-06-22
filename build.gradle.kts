@@ -41,6 +41,11 @@ intellijPlatform {
             untilBuild = provider { null }
         }
     }
+    pluginVerification {
+        ides {
+            recommended()
+        }
+    }
     signing {
         certificateChainFile.set(file(System.getenv("CERTIFICATE_CHAIN") ?: "chain.crt"))
         privateKeyFile.set(file(System.getenv("PRIVATE_KEY") ?: "private.pem"))
