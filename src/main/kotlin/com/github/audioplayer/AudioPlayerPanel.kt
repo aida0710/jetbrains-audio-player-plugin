@@ -48,7 +48,7 @@ class AudioPlayerPanel(
     private val playPauseButton = JButton("\u25B6")
     private val stopButton = JButton("\u23F9")
     private val loopButton = JToggleButton("Loop")
-    private val visualizerToggle = JCheckBox("ビジュアライザを表示", true)
+    private val visualizerToggle = JCheckBox(AudioPlayerBundle.message("visualizer.show"), true)
     private val seekSlider = JSlider(0, 1000, 0)
     private val volumeSlider = JSlider(0, 100, 80)
     private val speedCombo = JComboBox(arrayOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x"))
@@ -58,7 +58,7 @@ class AudioPlayerPanel(
     private val fileNameLabel = JLabel(file.name)
     private val statusLabel = JLabel("")
     private val settingsLink =
-        HyperlinkLabel("ffmpeg/ffprobe が見つかりません。設定で設定してください").apply {
+        HyperlinkLabel(AudioPlayerBundle.message("ffmpeg.notFound.link")).apply {
             addHyperlinkListener {
                 ShowSettingsUtil.getInstance().showSettingsDialog(project, AudioPlayerSettingsConfigurable::class.java)
             }
@@ -68,22 +68,22 @@ class AudioPlayerPanel(
     // 解析パネルのコンポーネント
     private val analyzeWaveformButton = JButton("Waveform")
     private val analyzeSpectrumButton = JButton("Spectrum")
-    private val saveImageButton = JButton("画像を保存")
+    private val saveImageButton = JButton(AudioPlayerBundle.message("image.save"))
 
     // 表示窓・ズーム/スクロール
     private var viewStartMicros = 0L
     private var viewEndMicros = 0L
     private val zoomInButton = JButton("＋")
     private val zoomOutButton = JButton("−")
-    private val zoomFitButton = JButton("全体")
-    private val splitChannelsToggle = JToggleButton("L/R分離")
+    private val zoomFitButton = JButton(AudioPlayerBundle.message("zoom.fit"))
+    private val splitChannelsToggle = JToggleButton(AudioPlayerBundle.message("channels.split"))
     private val scrollBar = JScrollBar(JScrollBar.HORIZONTAL)
     private var isSyncingScrollBar = false
 
     // 情報パネルのアクションボタン
-    private val copyInfoButton = JButton("情報をコピー")
-    private val measureLufsButton = JButton("ラウドネス測定")
-    private val exportAudioButton = JButton("別形式で書き出し")
+    private val copyInfoButton = JButton(AudioPlayerBundle.message("info.copy"))
+    private val measureLufsButton = JButton(AudioPlayerBundle.message("loudness.measure"))
+    private val exportAudioButton = JButton(AudioPlayerBundle.message("export.button"))
     private val infoActionsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { isOpaque = false }
 
     // 情報パネルのテーブル
@@ -344,10 +344,10 @@ class AudioPlayerPanel(
     private fun createAnalyzePanel(): JPanel {
         analyzeWaveformButton.toolTipText = "Generate waveform image"
         analyzeSpectrumButton.toolTipText = "Generate spectrum image"
-        zoomInButton.toolTipText = "拡大"
-        zoomOutButton.toolTipText = "縮小"
-        zoomFitButton.toolTipText = "全体を表示"
-        splitChannelsToggle.toolTipText = "波形をL/Rチャンネルで分離表示"
+        zoomInButton.toolTipText = AudioPlayerBundle.message("zoom.in.tooltip")
+        zoomOutButton.toolTipText = AudioPlayerBundle.message("zoom.out.tooltip")
+        zoomFitButton.toolTipText = AudioPlayerBundle.message("zoom.fit.tooltip")
+        splitChannelsToggle.toolTipText = AudioPlayerBundle.message("channels.split.tooltip")
         splitChannelsToggle.isSelected = settingsState.waveformSplitChannels
         scrollBar.isEnabled = false
 
@@ -555,7 +555,7 @@ class AudioPlayerPanel(
             Thread {
                 val result = LoudnessAnalyzer.measure(File(file.path))
                 SwingUtilities.invokeLater {
-                    setInfoRow("Loudness", result ?: "測定不可 (ffmpeg required)")
+                    setInfoRow("Loudness", result ?: AudioPlayerBundle.message("loudness.unavailable"))
                     measureLufsButton.isEnabled = true
                 }
             }.start()
@@ -571,7 +571,14 @@ class AudioPlayerPanel(
                 val ok = AudioConverter.export(File(file.path), output)
                 SwingUtilities.invokeLater {
                     notifyUser(
-                        if (ok) "書き出し完了: ${output.name}" else "書き出しに失敗しました (ffmpeg required)",
+                        if (ok) {
+                            AudioPlayerBundle.message(
+                                "export.done",
+                                output.name,
+                            )
+                        } else {
+                            AudioPlayerBundle.message("export.failed")
+                        },
                         if (ok) NotificationType.INFORMATION else NotificationType.WARNING,
                     )
                     exportAudioButton.isEnabled = true
@@ -582,7 +589,7 @@ class AudioPlayerPanel(
         saveImageButton.addActionListener {
             val img = timelinePanel.image
             if (img == null) {
-                notifyUser("保存する画像がありません。先に波形/スペクトラムを生成してください。", NotificationType.WARNING)
+                notifyUser(AudioPlayerBundle.message("image.none"), NotificationType.WARNING)
                 return@addActionListener
             }
             val snapshot =
@@ -616,7 +623,14 @@ class AudioPlayerPanel(
                     }
                 SwingUtilities.invokeLater {
                     notifyUser(
-                        if (ok) "画像を保存しました: ${out.name}" else "画像の保存に失敗しました",
+                        if (ok) {
+                            AudioPlayerBundle.message(
+                                "image.saved",
+                                out.name,
+                            )
+                        } else {
+                            AudioPlayerBundle.message("image.saveFailed")
+                        },
                         if (ok) NotificationType.INFORMATION else NotificationType.WARNING,
                     )
                 }
@@ -802,7 +816,7 @@ class AudioPlayerPanel(
                     if (wav != null) {
                         playerService.applySpeed(newSpeed, wav)
                     } else {
-                        notifyUser("速度変更に失敗しました (ffmpeg required)", NotificationType.WARNING)
+                        notifyUser(AudioPlayerBundle.message("speed.failed"), NotificationType.WARNING)
                     }
                     speedCombo.isEnabled = true
                 }
@@ -904,12 +918,11 @@ class AudioPlayerPanel(
                 if (ffprobeMissing) add("ffprobe")
             }.joinToString(" / ")
         val content =
-            "$missing が見つかりません。再生・波形表示には ffmpeg、メタデータ表示には ffprobe が必要です。" +
-                "インストール例 — macOS: brew install ffmpeg / Ubuntu: sudo apt install ffmpeg / Windows: winget install ffmpeg"
+            AudioPlayerBundle.message("ffmpeg.missing", missing)
         group
             .createNotification("Audio Player", content, NotificationType.WARNING)
             .addAction(
-                NotificationAction.createSimple("設定を開く") {
+                NotificationAction.createSimple(AudioPlayerBundle.message("settings.open")) {
                     ShowSettingsUtil.getInstance().showSettingsDialog(
                         project,
                         AudioPlayerSettingsConfigurable::class.java,
