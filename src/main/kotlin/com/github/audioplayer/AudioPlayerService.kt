@@ -46,7 +46,7 @@ class AudioPlayerService {
         val converted = AudioConverter.convertToWav(sourceFile)
         if (converted == null) {
             log.error("Conversion returned null for: ${sourceFile.name}")
-            onError?.invoke("Failed to load audio file: ${sourceFile.name}")
+            onError?.invoke(AudioPlayerBundle.message("status.loadFailed.file", sourceFile.name))
             return
         }
         wavFile = converted
@@ -77,7 +77,7 @@ class AudioPlayerService {
             true
         } catch (e: Exception) {
             log.error("Failed to open audio clip", e)
-            onError?.invoke("Failed to open audio: ${e.message}")
+            onError?.invoke(AudioPlayerBundle.message("status.openFailed", e.message.orEmpty()))
             false
         }
 

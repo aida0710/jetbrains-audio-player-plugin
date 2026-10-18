@@ -6,7 +6,7 @@ import javax.swing.Icon
 class AudioFileType private constructor() : FileType {
     override fun getName(): String = "Audio"
 
-    override fun getDescription(): String = "Audio file"
+    override fun getDescription(): String = AudioPlayerBundle.message("fileType.description")
 
     override fun getDefaultExtension(): String = "mp3"
 
