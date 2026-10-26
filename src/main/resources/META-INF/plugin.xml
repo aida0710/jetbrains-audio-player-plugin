@@ -17,7 +17,7 @@
 <ul>
   <li>Interactive waveform: click/drag to seek, playhead, played-region fill, time ruler, L/R channel split</li>
   <li>Spectrogram view</li>
-  <li>Zoom &amp; horizontal scroll (re-renders the selected range for detail)</li>
+  <li>Zoom &amp; horizontal scroll on the waveform (re-renders the selected range for detail; scrollbar or mouse wheel)</li>
   <li>Show/hide the visualizer for a compact view</li>
 </ul>
 
@@ -33,6 +33,7 @@
 <ul>
   <li>Open via project-tree right-click ("Open in Audio Player") or drag &amp; drop</li>
   <li>Automatic ffmpeg/ffprobe detection (macOS / Linux / Windows) with a settings page</li>
+  <li>UI follows the IDE language (English / Japanese)</li>
 </ul>
 
 <h3>Supported Formats</h3>
@@ -60,7 +61,7 @@
 <ul>
   <li>インタラクティブな波形: クリック/ドラッグでシーク、再生位置ライン、再生済み塗り、時間ルーラー、L/R 分離</li>
   <li>スペクトログラム表示</li>
-  <li>ズーム・横スクロール (区間を再生成して細部を確認)</li>
+  <li>波形のズーム・横スクロール (区間を再生成して細部を確認。スクロールバーまたはマウスホイール)</li>
   <li>ビジュアライザの表示/非表示 (コンパクト表示)</li>
 </ul>
 
@@ -76,6 +77,7 @@
 <ul>
   <li>プロジェクトツリー右クリック「Audio Player で開く」、ドラッグ&amp;ドロップで開く</li>
   <li>ffmpeg/ffprobe の自動検出 (macOS / Linux / Windows) と設定画面</li>
+  <li>IDE の言語に合わせた表示 (英語 / 日本語)</li>
 </ul>
 
 <h3>対応フォーマット</h3>
@@ -89,6 +91,11 @@
 ]]></description>
 
     <change-notes><![CDATA[
+<h3>1.2.1</h3>
+<ul>
+  <li>The full plugin description (features, supported formats, requirements) is now shown on JetBrains Marketplace and in the IDE plugin manager</li>
+</ul>
+
 <h3>1.2.0</h3>
 <ul>
   <li>UI text now follows the IDE language: English by default, Japanese when the IDE uses the Japanese language pack</li>
