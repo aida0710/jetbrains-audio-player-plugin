@@ -47,8 +47,8 @@ class AudioPlayerPanel(
 
     private val playPauseButton = JButton("\u25B6")
     private val stopButton = JButton("\u23F9")
-    private val loopButton = JToggleButton("Loop")
-    private val visualizerToggle = JCheckBox("ビジュアライザを表示", true)
+    private val loopButton = JToggleButton(AudioPlayerBundle.message("playback.loop"))
+    private val visualizerToggle = JCheckBox(AudioPlayerBundle.message("visualizer.show"), true)
     private val seekSlider = JSlider(0, 1000, 0)
     private val volumeSlider = JSlider(0, 100, 80)
     private val speedCombo = JComboBox(arrayOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x"))
@@ -58,7 +58,7 @@ class AudioPlayerPanel(
     private val fileNameLabel = JLabel(file.name)
     private val statusLabel = JLabel("")
     private val settingsLink =
-        HyperlinkLabel("ffmpeg/ffprobe が見つかりません。設定で設定してください").apply {
+        HyperlinkLabel(AudioPlayerBundle.message("ffmpeg.notFound.link")).apply {
             addHyperlinkListener {
                 ShowSettingsUtil.getInstance().showSettingsDialog(project, AudioPlayerSettingsConfigurable::class.java)
             }
@@ -66,29 +66,32 @@ class AudioPlayerPanel(
         }
 
     // 解析パネルのコンポーネント
-    private val analyzeWaveformButton = JButton("Waveform")
-    private val analyzeSpectrumButton = JButton("Spectrum")
-    private val saveImageButton = JButton("画像を保存")
+    private val analyzeWaveformButton = JButton(AudioPlayerBundle.message("analyze.waveform"))
+    private val analyzeSpectrumButton = JButton(AudioPlayerBundle.message("analyze.spectrum"))
+    private val saveImageButton = JButton(AudioPlayerBundle.message("image.save"))
 
     // 表示窓・ズーム/スクロール
     private var viewStartMicros = 0L
     private var viewEndMicros = 0L
     private val zoomInButton = JButton("＋")
     private val zoomOutButton = JButton("−")
-    private val zoomFitButton = JButton("全体")
-    private val splitChannelsToggle = JToggleButton("L/R分離")
+    private val zoomFitButton = JButton(AudioPlayerBundle.message("zoom.fit"))
+    private val splitChannelsToggle = JToggleButton(AudioPlayerBundle.message("channels.split"))
     private val scrollBar = JScrollBar(JScrollBar.HORIZONTAL)
     private var isSyncingScrollBar = false
 
     // 情報パネルのアクションボタン
-    private val copyInfoButton = JButton("情報をコピー")
-    private val measureLufsButton = JButton("ラウドネス測定")
-    private val exportAudioButton = JButton("別形式で書き出し")
+    private val copyInfoButton = JButton(AudioPlayerBundle.message("info.copy"))
+    private val measureLufsButton = JButton(AudioPlayerBundle.message("loudness.measure"))
+    private val exportAudioButton = JButton(AudioPlayerBundle.message("export.button"))
     private val infoActionsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { isOpaque = false }
 
     // 情報パネルのテーブル
     private val infoTableModel =
-        object : DefaultTableModel(arrayOf("Property", "Value"), 0) {
+        object : DefaultTableModel(
+            arrayOf(AudioPlayerBundle.message("info.column.property"), AudioPlayerBundle.message("info.column.value")),
+            0,
+        ) {
             override fun isCellEditable(
                 row: Int,
                 column: Int,
@@ -226,8 +229,10 @@ class AudioPlayerPanel(
         infoTable.columnModel.getColumn(1).preferredWidth = 200
 
         // 初期表示
-        infoTableModel.addRow(arrayOf("File", file.name))
-        infoTableModel.addRow(arrayOf("Status", "Loading..."))
+        infoTableModel.addRow(arrayOf(AudioPlayerBundle.message("info.file"), file.name))
+        infoTableModel.addRow(
+            arrayOf(AudioPlayerBundle.message("info.status"), AudioPlayerBundle.message("status.loading")),
+        )
 
         infoActionsPanel.add(copyInfoButton)
         infoActionsPanel.add(measureLufsButton)
@@ -255,7 +260,7 @@ class AudioPlayerPanel(
 
         seekSlider.apply {
             isOpaque = false
-            toolTipText = "Seek"
+            toolTipText = AudioPlayerBundle.message("playback.seek.tooltip")
         }
 
         val seekPanel =
@@ -267,16 +272,16 @@ class AudioPlayerPanel(
 
         playPauseButton.apply {
             font = font.deriveFont(18f)
-            toolTipText = "Play / Pause"
+            toolTipText = AudioPlayerBundle.message("playback.playPause.tooltip")
             preferredSize = Dimension(60, 40)
         }
         stopButton.apply {
             font = font.deriveFont(18f)
-            toolTipText = "Stop"
+            toolTipText = AudioPlayerBundle.message("playback.stop.tooltip")
             preferredSize = Dimension(60, 40)
         }
         loopButton.apply {
-            toolTipText = "Loop"
+            toolTipText = AudioPlayerBundle.message("playback.loop.tooltip")
             preferredSize = Dimension(60, 40)
         }
 
@@ -288,11 +293,11 @@ class AudioPlayerPanel(
                 add(loopButton)
             }
 
-        val volumeLabel = JLabel("Vol")
+        val volumeLabel = JLabel(AudioPlayerBundle.message("playback.volume"))
         volumeSlider.apply {
             isOpaque = false
             preferredSize = Dimension(120, 20)
-            toolTipText = "Volume"
+            toolTipText = AudioPlayerBundle.message("playback.volume.tooltip")
         }
         volumeValueLabel.preferredSize = Dimension(36, 20)
 
@@ -308,7 +313,7 @@ class AudioPlayerPanel(
         val speedPanel =
             JPanel(FlowLayout(FlowLayout.CENTER, 4, 0)).apply {
                 isOpaque = false
-                add(JLabel("Speed"))
+                add(JLabel(AudioPlayerBundle.message("playback.speed")))
                 add(speedCombo)
                 add(levelMeter)
             }
@@ -342,12 +347,12 @@ class AudioPlayerPanel(
     }
 
     private fun createAnalyzePanel(): JPanel {
-        analyzeWaveformButton.toolTipText = "Generate waveform image"
-        analyzeSpectrumButton.toolTipText = "Generate spectrum image"
-        zoomInButton.toolTipText = "拡大"
-        zoomOutButton.toolTipText = "縮小"
-        zoomFitButton.toolTipText = "全体を表示"
-        splitChannelsToggle.toolTipText = "波形をL/Rチャンネルで分離表示"
+        analyzeWaveformButton.toolTipText = AudioPlayerBundle.message("analyze.waveform.tooltip")
+        analyzeSpectrumButton.toolTipText = AudioPlayerBundle.message("analyze.spectrum.tooltip")
+        zoomInButton.toolTipText = AudioPlayerBundle.message("zoom.in.tooltip")
+        zoomOutButton.toolTipText = AudioPlayerBundle.message("zoom.out.tooltip")
+        zoomFitButton.toolTipText = AudioPlayerBundle.message("zoom.fit.tooltip")
+        splitChannelsToggle.toolTipText = AudioPlayerBundle.message("channels.split.tooltip")
         splitChannelsToggle.isSelected = settingsState.waveformSplitChannels
         scrollBar.isEnabled = false
 
@@ -551,11 +556,14 @@ class AudioPlayerPanel(
 
         measureLufsButton.addActionListener {
             measureLufsButton.isEnabled = false
-            setInfoRow("Loudness", "Measuring...")
+            setInfoRow(AudioPlayerBundle.message("info.loudness"), AudioPlayerBundle.message("loudness.measuring"))
             Thread {
                 val result = LoudnessAnalyzer.measure(File(file.path))
                 SwingUtilities.invokeLater {
-                    setInfoRow("Loudness", result ?: "測定不可 (ffmpeg required)")
+                    setInfoRow(
+                        AudioPlayerBundle.message("info.loudness"),
+                        result ?: AudioPlayerBundle.message("loudness.unavailable"),
+                    )
                     measureLufsButton.isEnabled = true
                 }
             }.start()
@@ -571,7 +579,14 @@ class AudioPlayerPanel(
                 val ok = AudioConverter.export(File(file.path), output)
                 SwingUtilities.invokeLater {
                     notifyUser(
-                        if (ok) "書き出し完了: ${output.name}" else "書き出しに失敗しました (ffmpeg required)",
+                        if (ok) {
+                            AudioPlayerBundle.message(
+                                "export.done",
+                                output.name,
+                            )
+                        } else {
+                            AudioPlayerBundle.message("export.failed")
+                        },
                         if (ok) NotificationType.INFORMATION else NotificationType.WARNING,
                     )
                     exportAudioButton.isEnabled = true
@@ -582,7 +597,7 @@ class AudioPlayerPanel(
         saveImageButton.addActionListener {
             val img = timelinePanel.image
             if (img == null) {
-                notifyUser("保存する画像がありません。先に波形/スペクトラムを生成してください。", NotificationType.WARNING)
+                notifyUser(AudioPlayerBundle.message("image.none"), NotificationType.WARNING)
                 return@addActionListener
             }
             val snapshot =
@@ -616,7 +631,14 @@ class AudioPlayerPanel(
                     }
                 SwingUtilities.invokeLater {
                     notifyUser(
-                        if (ok) "画像を保存しました: ${out.name}" else "画像の保存に失敗しました",
+                        if (ok) {
+                            AudioPlayerBundle.message(
+                                "image.saved",
+                                out.name,
+                            )
+                        } else {
+                            AudioPlayerBundle.message("image.saveFailed")
+                        },
                         if (ok) NotificationType.INFORMATION else NotificationType.WARNING,
                     )
                 }
@@ -627,7 +649,7 @@ class AudioPlayerPanel(
     }
 
     private fun loadFile() {
-        statusLabel.text = "Loading..."
+        statusLabel.text = AudioPlayerBundle.message("status.loading")
         Thread {
             val metadata = AudioProbe.probe(File(file.path))
             playerService.load(File(file.path))
@@ -649,8 +671,8 @@ class AudioPlayerPanel(
                     if (settingsState.lastSpeed != 1.0f) {
                         requestSpeedChange(settingsState.lastSpeed)
                     }
-                } else if (statusLabel.text == "Loading...") {
-                    statusLabel.text = "Failed to load audio file"
+                } else if (statusLabel.text == AudioPlayerBundle.message("status.loading")) {
+                    statusLabel.text = AudioPlayerBundle.message("status.loadFailed")
                 }
 
                 settingsLink.isVisible = ffmpegMissing || ffprobeMissing
@@ -670,32 +692,41 @@ class AudioPlayerPanel(
 
     private fun updateInfoTable(metadata: AudioMetadata?) {
         infoTableModel.rowCount = 0
-        infoTableModel.addRow(arrayOf("File", file.name))
+        infoTableModel.addRow(arrayOf(AudioPlayerBundle.message("info.file"), file.name))
 
         if (metadata != null) {
-            infoTableModel.addRow(arrayOf("Encoding", metadata.encoding))
-            infoTableModel.addRow(arrayOf("Format", metadata.format))
+            infoTableModel.addRow(arrayOf(AudioPlayerBundle.message("info.encoding"), metadata.encoding))
+            infoTableModel.addRow(arrayOf(AudioPlayerBundle.message("info.format"), metadata.format))
             infoTableModel.addRow(
-                arrayOf("Channels", AudioProbe.formatChannels(metadata.channels, metadata.channelLayout)),
+                arrayOf(
+                    AudioPlayerBundle.message("info.channels"),
+                    AudioProbe.formatChannels(metadata.channels, metadata.channelLayout),
+                ),
             )
-            infoTableModel.addRow(arrayOf("Sample Rate", AudioProbe.formatSampleRate(metadata.sampleRate)))
-            infoTableModel.addRow(arrayOf("File Size", AudioProbe.formatFileSize(metadata.fileSize)))
+            infoTableModel.addRow(
+                arrayOf(AudioPlayerBundle.message("info.sampleRate"), AudioProbe.formatSampleRate(metadata.sampleRate)),
+            )
+            infoTableModel.addRow(
+                arrayOf(AudioPlayerBundle.message("info.fileSize"), AudioProbe.formatFileSize(metadata.fileSize)),
+            )
             val durationStr = AudioPlayerService.formatTime(metadata.durationSeconds.toLong())
-            infoTableModel.addRow(arrayOf("Duration", durationStr))
+            infoTableModel.addRow(arrayOf(AudioPlayerBundle.message("info.duration"), durationStr))
             val tagLabels =
                 listOf(
-                    "title" to "Title",
-                    "artist" to "Artist",
-                    "album" to "Album",
-                    "date" to "Year",
-                    "genre" to "Genre",
-                    "track" to "Track",
+                    "title" to AudioPlayerBundle.message("info.tag.title"),
+                    "artist" to AudioPlayerBundle.message("info.tag.artist"),
+                    "album" to AudioPlayerBundle.message("info.tag.album"),
+                    "date" to AudioPlayerBundle.message("info.tag.year"),
+                    "genre" to AudioPlayerBundle.message("info.tag.genre"),
+                    "track" to AudioPlayerBundle.message("info.tag.track"),
                 )
             for ((key, label) in tagLabels) {
                 metadata.tags[key]?.let { infoTableModel.addRow(arrayOf(label, it)) }
             }
         } else {
-            infoTableModel.addRow(arrayOf("Info", "Metadata unavailable (ffprobe required)"))
+            infoTableModel.addRow(
+                arrayOf(AudioPlayerBundle.message("info.info"), AudioPlayerBundle.message("info.metadataUnavailable")),
+            )
         }
     }
 
@@ -802,7 +833,7 @@ class AudioPlayerPanel(
                     if (wav != null) {
                         playerService.applySpeed(newSpeed, wav)
                     } else {
-                        notifyUser("速度変更に失敗しました (ffmpeg required)", NotificationType.WARNING)
+                        notifyUser(AudioPlayerBundle.message("speed.failed"), NotificationType.WARNING)
                     }
                     speedCombo.isEnabled = true
                 }
@@ -830,7 +861,8 @@ class AudioPlayerPanel(
         val lenSec = if (full) null else (viewEndMicros - viewStartMicros) / 1_000_000.0
         val split = settingsState.waveformSplitChannels
         timelinePanel.image = null
-        timelinePanel.placeholderText = if (isSpectrum) "Generating spectrum..." else "Generating waveform..."
+        val generatingKey = if (isSpectrum) "analyze.generating.spectrum" else "analyze.generating.waveform"
+        timelinePanel.placeholderText = AudioPlayerBundle.message(generatingKey)
         // 単一スレッドで直列化し、連打で積まれた古いリクエストは ffmpeg を実行せずスキップする。
         // これにより -/+ や Waveform/Spectrum を連打しても実際に走る ffmpeg は最新の1つだけになり、
         // プロセス/スレッドの多重起動によるリソース枯渇クラッシュを防ぐ。
@@ -848,7 +880,7 @@ class AudioPlayerPanel(
                     timelinePanel.placeholderText = null
                     timelinePanel.image = img
                 } else {
-                    timelinePanel.placeholderText = "Failed to generate (ffmpeg required)"
+                    timelinePanel.placeholderText = AudioPlayerBundle.message("analyze.failed")
                 }
             }
         }
@@ -904,12 +936,11 @@ class AudioPlayerPanel(
                 if (ffprobeMissing) add("ffprobe")
             }.joinToString(" / ")
         val content =
-            "$missing が見つかりません。再生・波形表示には ffmpeg、メタデータ表示には ffprobe が必要です。" +
-                "インストール例 — macOS: brew install ffmpeg / Ubuntu: sudo apt install ffmpeg / Windows: winget install ffmpeg"
+            AudioPlayerBundle.message("ffmpeg.missing", missing)
         group
             .createNotification("Audio Player", content, NotificationType.WARNING)
             .addAction(
-                NotificationAction.createSimple("設定を開く") {
+                NotificationAction.createSimple(AudioPlayerBundle.message("settings.open")) {
                     ShowSettingsUtil.getInstance().showSettingsDialog(
                         project,
                         AudioPlayerSettingsConfigurable::class.java,

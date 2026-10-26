@@ -24,8 +24,8 @@ class AudioPlayerSettingsConfigurable : Configurable {
                 addBrowseFolderListener(
                     null,
                     FileChooserDescriptor(true, false, false, false, false, false)
-                        .withTitle("Select ffmpeg")
-                        .withDescription("Select the ffmpeg executable"),
+                        .withTitle(AudioPlayerBundle.message("settings.ffmpeg.select.title"))
+                        .withDescription(AudioPlayerBundle.message("settings.ffmpeg.select.description")),
                 )
             }
 
@@ -34,20 +34,20 @@ class AudioPlayerSettingsConfigurable : Configurable {
                 addBrowseFolderListener(
                     null,
                     FileChooserDescriptor(true, false, false, false, false, false)
-                        .withTitle("Select ffprobe")
-                        .withDescription("Select the ffprobe executable"),
+                        .withTitle(AudioPlayerBundle.message("settings.ffprobe.select.title"))
+                        .withDescription(AudioPlayerBundle.message("settings.ffprobe.select.description")),
                 )
             }
 
         statusLabel = JBLabel("")
 
         val autoDetectButton =
-            JButton("Auto Detect").apply {
+            JButton(AudioPlayerBundle.message("settings.autoDetect")).apply {
                 addActionListener { onAutoDetect() }
             }
 
         val testButton =
-            JButton("Test").apply {
+            JButton(AudioPlayerBundle.message("settings.test")).apply {
                 addActionListener { onTest() }
             }
 
@@ -64,8 +64,8 @@ class AudioPlayerSettingsConfigurable : Configurable {
         val panel =
             FormBuilder
                 .createFormBuilder()
-                .addLabeledComponent("ffmpeg path:", ffmpegPathField!!)
-                .addLabeledComponent("ffprobe path:", ffprobePathField!!)
+                .addLabeledComponent(AudioPlayerBundle.message("settings.ffmpeg.path"), ffmpegPathField!!)
+                .addLabeledComponent(AudioPlayerBundle.message("settings.ffprobe.path"), ffprobePathField!!)
                 .addComponent(buttonPanel)
                 .addComponent(statusLabel!!)
                 .addComponentFillVertically(JPanel(), 0)
@@ -84,9 +84,10 @@ class AudioPlayerSettingsConfigurable : Configurable {
         if (ffmpeg != null) ffmpegPathField?.text = ffmpeg
         if (ffprobe != null) ffprobePathField?.text = ffprobe
 
-        val messages = mutableListOf<String>()
-        if (ffmpeg != null) messages.add("ffmpeg: $ffmpeg") else messages.add("ffmpeg: not found")
-        if (ffprobe != null) messages.add("ffprobe: $ffprobe") else messages.add("ffprobe: not found")
+        val messages =
+            listOf("ffmpeg" to ffmpeg, "ffprobe" to ffprobe).map { (command, path) ->
+                if (path != null) "$command: $path" else AudioPlayerBundle.message("settings.notFound", command)
+            }
         statusLabel?.text = messages.joinToString("  |  ")
     }
 
