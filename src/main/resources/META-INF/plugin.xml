@@ -89,6 +89,12 @@
 ]]></description>
 
     <change-notes><![CDATA[
+<h3>1.2.0</h3>
+<ul>
+  <li>UI text now follows the IDE language: English by default, Japanese when the IDE uses the Japanese language pack</li>
+  <li>Many thanks to Jacco van der Post (Zillion01) for contributing the localization in <a href="https://github.com/aida0710/jetbrains-audio-player-plugin/pull/5">#5</a></li>
+</ul>
+
 <h3>1.1.1</h3>
 <ul>
   <li>Fixed a crash when repeatedly zooming (−/＋) or switching Waveform/Spectrum (visualization generation is now serialized)</li>
