@@ -35,7 +35,6 @@ intellijPlatform {
         id = "com.github.audioplayer"
         name = "Audio Player"
         version = pluginVersion
-        description = "Play audio files directly in the editor with playback controls."
         ideaVersion {
             sinceBuild = "${platformVersion.substring(2, 4)}${platformVersion.last()}" // "2024.3" -> "243"
             untilBuild = provider { null }
