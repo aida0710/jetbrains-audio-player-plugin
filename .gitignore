@@ -39,3 +39,6 @@ build/
 private.pem
 chain.crt
 .env
+
+### 確認用の画像 ###
+artifacts/
