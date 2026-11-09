@@ -8,10 +8,14 @@ import org.jetbrains.annotations.PropertyKey
 @NonNls
 private const val BUNDLE = "messages.AudioPlayerBundle"
 
-object AudioPlayerBundle : DynamicBundle(BUNDLE) {
+// DynamicBundle は継承せず、インスタンスを持って委譲する（継承用のコンストラクタは非推奨）。
+// 渡すクラスのクラスローダーから文言ファイルを探す。
+object AudioPlayerBundle {
+    private val bundle = DynamicBundle(AudioPlayerBundle::class.java, BUNDLE)
+
     @Nls
     fun message(
         @PropertyKey(resourceBundle = BUNDLE) key: String,
         vararg params: Any,
-    ): String = getMessage(key, *params)
+    ): String = bundle.getMessage(key, *params)
 }
