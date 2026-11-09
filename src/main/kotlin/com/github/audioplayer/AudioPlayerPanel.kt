@@ -5,7 +5,6 @@ import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
@@ -136,7 +135,7 @@ class AudioPlayerPanel(
     }
 
     // 音声ファイルのドラッグ&ドロップを受け付けて開く。flavor 未対応(IDE内部ドラッグ等)は拒否し、
-    // VFS 解決は EDT を塞がないようプール上で行い、openFile のみ EDT に戻す。
+    // VFS 解決は EDT を塞がないようプール上で行い、開く処理だけ EDT に戻す。
     private fun setupDropTarget() {
         DropTarget(
             this,
@@ -158,7 +157,7 @@ class AudioPlayerPanel(
                                 val vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(audio)
                                 if (vf != null) {
                                     ApplicationManager.getApplication().invokeLater {
-                                        FileEditorManager.getInstance(project).openFile(vf, true)
+                                        openInAudioPlayer(project, vf)
                                     }
                                 }
                             }

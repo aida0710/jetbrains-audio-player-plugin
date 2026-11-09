@@ -91,6 +91,11 @@
 ]]></description>
 
     <change-notes><![CDATA[
+<h3>1.2.2</h3>
+<ul>
+  <li>Replaced APIs deprecated in IntelliJ IDEA 2026.3 (opening audio files and loading UI text); behavior is unchanged</li>
+</ul>
+
 <h3>1.2.1</h3>
 <ul>
   <li>The full plugin description (features, supported formats, requirements) is now shown on JetBrains Marketplace and in the IDE plugin manager</li>
